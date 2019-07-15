@@ -1,10 +1,12 @@
 package kinesis
 
 import (
-	"github.com/aws-sdk-go/aws/session"
-	"github.com/aws-sdk-go/service/firehose"
-	"github.com/underscorenygren/producer"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/firehose"
+	"github.com/underscorenygren/metrics/producer"
 	"go.uber.org/zap"
+	"os"
 )
 
 const (
@@ -20,8 +22,14 @@ type kinesisProducer struct {
 
 //New constructs kinesis producer
 func New(name string, logger *zap.Logger) producer.Producer {
-	session := aws.Session()
-	firehose := firehose.Firehose(session)
+
+	region := "us-east-1"
+	envRegion := os.Getenv("AWS_DEFAULT_REGION")
+	if envRegion != "" {
+		region = envRegion
+	}
+	awsCfg := aws.NewConfig().WithRegion(region)
+	firehose := firehose.New(session.New(), awsCfg)
 
 	return &kinesisProducer{
 		name:     name,
@@ -30,28 +38,33 @@ func New(name string, logger *zap.Logger) producer.Producer {
 	}
 }
 
-func (kp *kinesisProducer) PutRecords(records [][]byte) []byte {
+func (kp *kinesisProducer) PutRecords(records [][]byte) [][]byte {
 	firehoseRecords := []*firehose.Record{}
 	failed := [][]byte{}
 
-	for bytes := range records {
+	for _, bytes := range records {
 		firehoseRecords = append(firehoseRecords, toRecord(bytes))
 	}
 
-	kp.logger.Debug("kinesis putting records", zap.Integer("len", len(toProc)))
-	res := firehose.PutRecordBatch(&firehose.PutRecordBatchInput{
-		DeliveryStreamName: kp.name,
+	kp.logger.Debug("kinesis putting records", zap.Int("len", len(records)))
+	res, err := kp.firehose.PutRecordBatch(&firehose.PutRecordBatchInput{
+		DeliveryStreamName: &kp.name,
 		Records:            firehoseRecords,
 	})
 	kp.logger.Debug("finished putting records")
+	if err != nil {
+		kp.logger.Error("kinesis exception", zap.Error(err))
+		//All failed
+		return records
+	}
 
-	nFailed = res.FailedPutCount
-	if nFailed > 0 {
-		kp.Logger.Info("kinesis failed records", zap.Integer("len", nFailed))
+	nFailed := res.FailedPutCount
+	if nFailed != nil && *nFailed > 0 {
+		kp.logger.Info("kinesis failed records", zap.Int64("len", *nFailed))
 		for index, resp := range res.RequestResponses {
 			if resp.ErrorCode != nil {
 				kp.logger.Error("kinesis producer error",
-					zap.String("code", *resp.Code),
+					zap.String("code", *resp.ErrorCode),
 					zap.String("err", *resp.ErrorMessage),
 					zap.String("recordId", *resp.RecordId))
 				failed = append(failed, records[index])
@@ -62,6 +75,6 @@ func (kp *kinesisProducer) PutRecords(records [][]byte) []byte {
 	return failed
 }
 
-func toRecord(bytes []byte) *kinesis.Record {
-	return kinesis.Record{Data: bytes}
+func toRecord(bytes []byte) *firehose.Record {
+	return &firehose.Record{Data: bytes}
 }

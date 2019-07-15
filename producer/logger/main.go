@@ -1,21 +1,22 @@
 package logger
 
 import (
+	"github.com/underscorenygren/metrics/producer"
 	"go.uber.org/zap"
 )
 
-type logger struct {
+type logProducer struct {
 	logger *zap.Logger
 }
 
 //New outputs messages using zap
 func New(logger *zap.Logger) producer.Producer {
-	return logger{logger: logger}
+	return &logProducer{logger: logger}
 }
 
-func (l *logger) PutRecords(records [][]byte) [][]byte {
-	for rec := range records {
-		l.Debug("request", zap.ByteString("body", req))
+func (l *logProducer) PutRecords(records [][]byte) [][]byte {
+	for _, rec := range records {
+		l.logger.Debug("request", zap.ByteString("body", rec))
 	}
-	return [][]byte{}
+	return records
 }

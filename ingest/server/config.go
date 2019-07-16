@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/underscorenygren/metrics/middleware"
 	"github.com/underscorenygren/metrics/producer"
 	"go.uber.org/zap"
 	"net/http"
@@ -70,6 +71,20 @@ func (cfg *Config) SetLogger(logger *zap.Logger) *Config {
 	return &copy
 }
 
+//SetContextMaker set logger
+func (cfg *Config) SetContextMaker(contextMaker ContextMaker) *Config {
+	copy := Config(*cfg)
+	copy.ContextMaker = contextMaker
+	return &copy
+}
+
+//SetMiddleware sets middleware
+func (cfg *Config) SetMiddleware(transformer middleware.Transformer) *Config {
+	copy := Config(*cfg)
+	copy.Middleware = transformer
+	return &copy
+}
+
 //RunForever Build server from config and start serving requests
 func (cfg *Config) RunForever() error {
 
@@ -106,9 +121,11 @@ func (cfg *Config) RunForever() error {
 		}
 	}
 
-	s := state{
-		logger: logger,
-		p:      cfg.Producer,
+	s := server{
+		logger:       logger,
+		p:            cfg.Producer,
+		middleware:   cfg.Middleware,
+		contextMaker: cfg.ContextMaker,
 	}
 	addr := fmt.Sprintf("%s:%d", host, port)
 

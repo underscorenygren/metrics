@@ -18,5 +18,5 @@ func (l *logProducer) PutRecords(records [][]byte) [][]byte {
 	for _, rec := range records {
 		l.logger.Debug("request", zap.ByteString("body", rec))
 	}
-	return records
+	return [][]byte{}
 }

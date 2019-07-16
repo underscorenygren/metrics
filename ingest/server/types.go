@@ -1,14 +1,22 @@
 package server
 
 import (
+	"context"
+	"github.com/underscorenygren/metrics/middleware"
 	"github.com/underscorenygren/metrics/producer"
 	"go.uber.org/zap"
+	"net/http"
 	"time"
 )
 
-type state struct {
-	logger *zap.Logger
-	p      producer.Producer
+//ContextMaker parses and generates context per-request
+type ContextMaker func(*http.Request) (context.Context, error)
+
+type server struct {
+	logger       *zap.Logger
+	p            producer.Producer
+	middleware   middleware.Transformer
+	contextMaker ContextMaker
 }
 
 //Config server configuration
@@ -20,4 +28,6 @@ type Config struct {
 	WriteTimeout      *time.Duration
 	Producer          producer.Producer
 	Logger            *zap.Logger
+	Middleware        middleware.Transformer
+	ContextMaker      ContextMaker
 }

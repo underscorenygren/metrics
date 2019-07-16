@@ -34,11 +34,12 @@ func AddFromContext(key interface{}, field string) Processor {
 	}
 }
 
-//UTCTimestamp writes a utc timestamp to key
-func UTCTimestamp(key string) Processor {
+//ElasticsearchTimestamp adds the current time as elasticsearch's formatted string
+func ElasticsearchTimestamp() Processor {
+	key := "@timestamp"
 	transformer := func(v *fastjson.Value, ctx context.Context) error {
 		return setString(key,
-			time.Now().UTC().Format("2006-01-02T15:04:05.000000Z"),
+			time.Now().UTC().Format(time.RFC3339Nano),
 			v)
 	}
 	return transformer

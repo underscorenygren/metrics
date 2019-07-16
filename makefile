@@ -5,4 +5,4 @@ run-%:
 	go run runners/$*/main.go
 
 test:
-	curl -X POST -H "header:123" localhost/some-path -d '{"message": "something"}'
+	curl -X POST -H "header:123" localhost/some-path -d '{"message": "nano"}'

@@ -55,7 +55,7 @@ func main() {
 		SetMiddleware(json.New([]json.Processor{
 			json.AddFromContext(headerKey, headerValue),
 			json.AddFromContext(pathKey, "path"),
-			json.UTCTimestamp("@timestamp"),
+			json.ElasticsearchTimestamp(),
 		})).
 		SetLogger(zapper).
 		RunForever()

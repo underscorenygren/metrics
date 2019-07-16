@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/underscorenygren/metrics/ingest/server"
 	"github.com/underscorenygren/metrics/middleware/json"
-	"github.com/underscorenygren/metrics/producer/logger"
+	"github.com/underscorenygren/metrics/producer/kinesis"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
+	"os"
 )
 
 type contextKey int
@@ -43,8 +44,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	name := os.Getenv("NAME")
+	if name == "" {
+		log.Fatal("Must set NAME env var")
+	}
+
 	(&server.Config{}).
-		SetProducer(logger.New(zapper)).
+		SetProducer(kinesis.New(name, zapper)).
 		SetContextMaker(contextParser).
 		SetMiddleware(json.New([]json.Processor{
 			json.AddFromContext(headerKey, headerValue),

@@ -24,17 +24,6 @@ func New(chain []Processor) *JSON {
 	return json
 }
 
-func setString(key, val string, dst *fastjson.Value) error {
-	//fastjson uses strict json format here, so quotes needed:
-	//https://godoc.org/github.com/valyala/fastjson#Value.Set
-	produced, err := fastjson.Parse(fmt.Sprintf(`"%s"`, val))
-	if err != nil {
-		return err
-	}
-	dst.Set(key, produced)
-	return nil
-}
-
 //AddFromContext reads field key as string and puts it as key on object
 func AddFromContext(key interface{}, field string) Processor {
 	return func(v *fastjson.Value, ctx context.Context) error {
@@ -49,7 +38,7 @@ func AddFromContext(key interface{}, field string) Processor {
 func UTCTimestamp(key string) Processor {
 	transformer := func(v *fastjson.Value, ctx context.Context) error {
 		return setString(key,
-			time.Now().UTC().Format("2006-02-15T15:04:05.000000Z"),
+			time.Now().UTC().Format("2006-01-02T15:04:05.000000Z"),
 			v)
 	}
 	return transformer
@@ -71,4 +60,16 @@ func (json *JSON) Transform(ctx context.Context, bytes []byte) ([]byte, error) {
 	}
 
 	return v.MarshalTo(nil), nil
+}
+
+//write string to fastjson object
+func setString(key, val string, dst *fastjson.Value) error {
+	//fastjson uses strict json format here, so quotes needed:
+	//https://godoc.org/github.com/valyala/fastjson#Value.Set
+	produced, err := fastjson.Parse(fmt.Sprintf(`"%s"`, val))
+	if err != nil {
+		return err
+	}
+	dst.Set(key, produced)
+	return nil
 }

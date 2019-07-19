@@ -57,6 +57,10 @@ func main() {
 			json.AddFromContext(pathKey, "path"),
 			json.ElasticsearchTimestamp(),
 		})).
+		SetHealthcheck(&server.Healthcheck{
+			Path:   "/",
+			Method: http.MethodGet,
+		}).
 		SetLogger(zapper).
 		RunForever()
 }

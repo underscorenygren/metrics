@@ -12,6 +12,13 @@ func (s *server) handleError(err error, w http.ResponseWriter) {
 	s.logger.Error("error on request", zap.Error(err))
 }
 
+func (s *server) isHealthcheckRequest(req *http.Request) bool {
+	return s.healthcheck != nil &&
+		(req.URL != nil &&
+			req.URL.Path == s.healthcheck.Path) &&
+		req.Method == s.healthcheck.Method
+}
+
 func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -19,6 +26,12 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s.logger.Debug("received request", zap.ByteString("body", body))
+
+	if s.isHealthcheckRequest(req) {
+		s.logger.Debug("healtcheck request")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	ctx := req.Context()
 	if s.contextMaker != nil {

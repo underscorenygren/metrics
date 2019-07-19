@@ -17,6 +17,13 @@ type server struct {
 	p            producer.Producer
 	middleware   middleware.Transformer
 	contextMaker ContextMaker
+	healthcheck  *Healthcheck
+}
+
+//Healthcheck configures healthcheck handling on path/method
+type Healthcheck struct {
+	Path   string
+	Method string
 }
 
 //Config server configuration
@@ -30,4 +37,5 @@ type Config struct {
 	Logger            *zap.Logger
 	Middleware        middleware.Transformer
 	ContextMaker      ContextMaker
+	Healthcheck       *Healthcheck
 }

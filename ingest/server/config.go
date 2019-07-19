@@ -85,6 +85,13 @@ func (cfg *Config) SetMiddleware(transformer middleware.Transformer) *Config {
 	return &copy
 }
 
+//SetHealthcheck sets healthcheck
+func (cfg *Config) SetHealthcheck(healthcheck *Healthcheck) *Config {
+	copy := Config(*cfg)
+	copy.Healthcheck = healthcheck
+	return &copy
+}
+
 //RunForever Build server from config and start serving requests
 func (cfg *Config) RunForever() error {
 
@@ -126,6 +133,7 @@ func (cfg *Config) RunForever() error {
 		p:            cfg.Producer,
 		middleware:   cfg.Middleware,
 		contextMaker: cfg.ContextMaker,
+		healthcheck:  cfg.Healthcheck,
 	}
 	addr := fmt.Sprintf("%s:%d", host, port)
 

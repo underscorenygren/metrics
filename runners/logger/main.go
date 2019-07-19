@@ -5,6 +5,7 @@ import (
 	"github.com/underscorenygren/metrics/producer/logger"
 	"go.uber.org/zap"
 	"log"
+	"net/http"
 )
 
 func main() {
@@ -19,5 +20,9 @@ func main() {
 	(&server.Config{}).
 		SetProducer(logger.New(zapper)).
 		SetLogger(zapper).
+		SetHealthcheck(&server.Healthcheck{
+			Path:   "/",
+			Method: http.MethodGet,
+		}).
 		RunForever()
 }

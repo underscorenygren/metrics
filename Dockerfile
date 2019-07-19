@@ -1,5 +1,7 @@
 from golang:latest
 
+ENV GO111MODULE "on"
+
 RUN mkdir -p /go/src/github.com/underscorenygren/metrics/
 WORKDIR /go/src/github.com/underscorenygren/metrics/
 

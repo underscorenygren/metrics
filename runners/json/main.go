@@ -30,7 +30,6 @@ func contextParser(req *http.Request) (context.Context, error) {
 	if req.URL == nil {
 		return nil, fmt.Errorf("req url is nil")
 	}
-	fmt.Println(req.URL.Path)
 	ctx = context.WithValue(ctx, pathKey, req.URL.Path[1:])
 
 	return ctx, nil

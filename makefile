@@ -1,8 +1,79 @@
+.PHONY: build help test ls
+RUNNER_DIR := runners
+
+## Makefile self-documentation
+##############################
+
+# From: https://suva.sh/posts/well-documented-makefiles/#grouped-makefile
+BLUESTYLE=\033[36m
+BOLDSTYLE=\033[1m
+ENDSTYLE=\033[0m
+PADDING=25
+PADDINGSTR=$(shell printf "%-${PADDING}s" ' ')
+
+
+HELP_AWK_CMD=BEGIN $\
+		{ $\
+			FS = ":.*\#\#"; $\
+			printf "MAKE COMMANDS\n--------------------\n make $(BLUESTYLE)<command>$(ENDSTYLE)\n" $\
+		} $\
+		/^[\\%%a-zA-Z_-]+:.*?\#\#/ $\
+		{ $\
+			printf "$(BLUESTYLE)%-$(PADDING)s$(ENDSTYLE) %s\n", $$1, $$2 $\
+		} $\
+		/^\#\#@/ $\
+		{ $\
+			printf "\n$(BOLDSTYLE)%s$(ENDSTYLE)\n", substr($$0, 5) $\
+		}
+
 help:
-	@echo call make run-NAME-OF-TARGET
+	$(eval WIDTH=90)
+	@awk '$(HELP_AWK_CMD)' Makefile | while read line; do \
+        if [[ $${#line} -gt $(WIDTH) ]] ; then \
+			echo "$$line" | fold -sw$(WIDTH) | head -n1; \
+			echo "$$line" | fold -sw$(WIDTH) | tail -n+2 | sed "s/^/  $(PADDINGSTR)/"; \
+		else \
+			echo "$$line"; \
+		fi; done
+	@echo "\nTARGETS"
+	@echo "--------------------"
+	@make ls
 
-run-%:
-	go run runners/$*/main.go
+#####################################
+## End of Makefile self-documentation
 
-test:
+# Local
+
+run-%:  ## runs a target locally
+	go run $(RUNNER_DIR)/$*/main.go
+
+build-%:  ## builds a target locally
+	go build -o build/$* $(RUNNER_DIR)/$*/main.go
+
+clean-%:  ## cleans up build targets
+	rm -f build/$*
+
+# derive targets from folders in runner directory
+# suppress errors since one will be empty in docker and vice versa
+LS_CMD = ls $(RUNNER_DIR)/ 2> /dev/null
+TARGET_NAMES := $(shell $(LS_CMD))
+TARGETS := $(addprefix build-,$(TARGET_NAMES))
+
+
+build: $(TARGETS) ## builds all targets locally
+
+
+## Docker
+
+docker-install:  ## installs dependencies inside golang docker container
+	go mod download
+
+# Utilities
+
+ls:  ## lists available build/run targets
+	@$(LS_CMD) | cat
+
+
+test:  ## test request to local running service
 	curl -X POST -H "header:123" localhost/some-path -d '{"message": "nano"}'
+

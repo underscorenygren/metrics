@@ -68,6 +68,9 @@ build: $(TARGETS) ## builds all targets locally
 docker-install:  ## installs dependencies inside golang docker container
 	go mod download
 
+docker-install:  ## installs dependencies inside golang docker container
+	go mod download
+
 # Utilities
 
 ls:  ## lists available build/run targets

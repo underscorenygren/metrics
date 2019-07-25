@@ -92,9 +92,31 @@ func (cfg *Config) SetHealthcheck(healthcheck *Healthcheck) *Config {
 	return &copy
 }
 
-//RunForever Build server from config and start serving requests
-func (cfg *Config) RunForever() error {
+func (cfg *Config) noRoutesRegistered() bool {
 
+	foundRoute := false
+
+	if cfg.Router == nil {
+		return true
+	}
+
+	cfg.Router.Walk(func(route *Route, router *Router, ancestors *[]Route) error {
+		foundRoute = true
+		return errors.New("ignored")
+	})
+
+	return foundRoute
+}
+
+//NewConfig creates config with defaults
+func NewConfig() *Config {
+	return Config{
+		Router: mux.Router(),
+	}
+}
+
+//Build builds Server from configuration
+func (cfg *Config) Build() Server {
 	host := DefaultHost
 	port := DefaultPort
 	readHeaderTimeout := DefaultReadHeaderTimeout
@@ -127,7 +149,6 @@ func (cfg *Config) RunForever() error {
 			return err
 		}
 	}
-
 	s := server{
 		logger:       logger,
 		p:            cfg.Producer,
@@ -135,17 +156,30 @@ func (cfg *Config) RunForever() error {
 		contextMaker: cfg.ContextMaker,
 		healthcheck:  cfg.Healthcheck,
 	}
-	addr := fmt.Sprintf("%s:%d", host, port)
 
-	s.logger.Info("starting server", zap.String("addr", addr))
+	if cfg.Router == nil {
+		cfg.Router = mux.NewRouter()
+	}
+	if cfg.noRoutesRegistered() {
+		router.HandleFunc("/", &s)
+	}
+
+	addr := fmt.Sprintf("%s:%d", host, port)
 
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           &s,
+		Handler:           cfg.Router,
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
 	}
+
+	return httpServer
+}
+
+//RunForever Build server from config and start serving requests
+func (cfg *Config) RunForever() error {
+	httpServer := cfg.Build()
 
 	return httpServer.ListenAndServe()
 }

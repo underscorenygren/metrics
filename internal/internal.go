@@ -12,3 +12,12 @@ func ToEvents(bytesSlice [][]byte) []types.Event {
 	}
 	return evts
 }
+
+//StringsToEvents converts a list of strings to events
+func StringsToEvents(stringSlice []string) []types.Event {
+	bytesSlice := [][]byte{}
+	for _, str := range stringSlice {
+		bytesSlice = append(bytesSlice, []byte(str))
+	}
+	return ToEvents(bytesSlice)
+}

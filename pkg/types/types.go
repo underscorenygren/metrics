@@ -1,4 +1,4 @@
-package pkg
+package types
 
 //Event a single event in the system. Passed around as a typed
 //object instead of a native type to make additions to class easier.
@@ -13,18 +13,19 @@ type Event struct {
 // to storage, logging, etc.
 type Sink interface {
 	//Processes a sequence of events.
-	//if any events fail, returns a slice where
-	//the index of the failure corresponds to the original
-	//event.
+	//If any events fail, returns a slice where the index of the failure corresponds to the original event.
 	//If there are no failures, returns nil
-	Drain([]event.Event) []error
+	Drain([]Event) []error
 }
 
-//Stage stage
-type Stage interface{}
-
 //MapFn mapfn
-type MapFn func(Event) Event
+type MapFn func(*Event) *Event
+
+//Source source
+type Source interface {
+	DrawOne() (*Event, error)
+	Close() error
+}
 
 //Pipeline pipeline
 type Pipeline interface {
@@ -33,8 +34,12 @@ type Pipeline interface {
 	DrainTo(Sink)
 }
 
-//Source source
-type Source interface {
-	DrawOne() Event
-	Close() error
+//NewEventFromBytes creates an event object from a set of bytes
+func NewEventFromBytes(bytes []byte) Event {
+	return Event{bytes: bytes}
+}
+
+//Bytes returns the bytes of the event
+func (evt *Event) Bytes() []byte {
+	return evt.bytes
 }

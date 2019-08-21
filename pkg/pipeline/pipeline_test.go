@@ -1,38 +1,28 @@
-package blackhole_test
+package pipeline_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "UNKNOWN_PACKAGE_PATH"
+	"github.com/underscorenygren/metrics/pkg/pipeline"
+	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
+	"github.com/underscorenygren/metrics/pkg/source"
+	"github.com/underscorenygren/metrics/pkg/types"
 )
 
-var _ = Describe("Blackhole", func() {
-
-	testEvents := [][]byte{
-		[]byte("a"),
-		[]byte("b"),
-	}
-
-	It("drains test events", func() {
-
-		Expect(
-			blackhole.Drain(
-				internal.ToEvents(testEvents))).
-			ToEqual(nil)
-	})
+var _ = Describe("Pipeline", func() {
 
 	It("drained events are counted", func() {
 
-		testSource := pkg.NewManualSource()
+		testSource := source.NewProgrammaticSource()
 
 		total := 0
-		counter := func(evt Event) Event {
+		counter := func(evt *types.Event) *types.Event {
 			total = total + 1
 			return evt
 		}
 
-		p := pkg.NewChannelPipeline(
+		p := pipeline.NewPipeline(
 			testSource,
 			blackhole.Sink())
 		p.MapFn = counter
@@ -45,11 +35,11 @@ var _ = Describe("Blackhole", func() {
 		//more events get counted
 		testSource.PutString("a")
 		testSource.PutString("a")
-		Expect(counter.total).To(Equal(3))
+		Expect(total).To(Equal(3))
 
 		//After closing source, no more events are counted
 		Expect(testSource.Close()).To(BeNil())
-		Expect(testSource.PutString("a")).To(BeError())
-		Expect(counter.total).To(Equal(3))
+		Expect(testSource.PutString("a")).Should(HaveOccurred())
+		Expect(total).To(Equal(3))
 	})
 })

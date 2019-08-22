@@ -1,7 +1,9 @@
 package pipeline
 
 import (
+	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 )
@@ -12,6 +14,8 @@ type Pipeline struct {
 	MapFn   types.MapFn
 	source  types.Source
 	drainTo types.Sink
+	//Failed drains go to a separate sink, a blackhole by default.
+	FailSink types.Sink
 }
 
 //defaultMapFn the default map function passes events through unchanged
@@ -22,9 +26,10 @@ func defaultMapFn(evt *types.Event) (*types.Event, error) {
 //NewPipeline Creates a Pipeline
 func NewPipeline(source types.Source, sink types.Sink) *Pipeline {
 	return &Pipeline{
-		source:  source,
-		MapFn:   defaultMapFn,
-		drainTo: sink,
+		source:   source,
+		MapFn:    defaultMapFn,
+		drainTo:  sink,
+		FailSink: blackhole.Sink(),
 	}
 }
 
@@ -38,11 +43,13 @@ func (pipe *Pipeline) Flow() error {
 		logger.Debug("Flow: drawing")
 		e, err := pipe.source.DrawOne()
 		logger.Debug("Flow: drew")
-		//nil events and errors stop the flow
+
+		//drawing errors stop the flow
 		if err != nil {
 			logger.Debug("Flow: Draw error", zap.Error(err))
 			return err
 		}
+		//nil events also stop the flow
 		if e == nil {
 			logger.Debug("Flow: Empty event")
 			return nil
@@ -54,12 +61,51 @@ func (pipe *Pipeline) Flow() error {
 			logger.Debug("Flow: mapping error", zap.Error(err))
 			return err
 		}
+		//mappers can return nil events, but this doesn't stop flow
 		if e != nil {
 			logger.Debug("Flow: draining", zap.ByteString("event", e.Bytes()))
-			pipe.drainTo.Drain([]types.Event{*e})
+			events := []types.Event{*e}
+			err = pipe.drain(events)
+			//we cannot recover from failures to drain to failure sink
+			if err != nil {
+				return err
+			}
 		} else {
 			logger.Debug("Flow: mapped nil")
 		}
+	}
+
+	return nil
+}
+
+//internal drain handling function that handles draining failures
+func (pipe *Pipeline) drain(events []types.Event) error {
+	logger := logging.Logger()
+
+	failed := pipe.drainTo.Drain(events)
+
+	if failed == nil {
+		return nil
+	}
+
+	failures := []types.Event{}
+	for i, failErr := range failed {
+		if failErr != nil {
+			e := events[i]
+			logger.Debug("Flow: event failed",
+				zap.Int("i", i),
+				zap.Error(failErr),
+				zap.ByteString("event", e.Bytes()))
+			failures = append(failures, e)
+		}
+	}
+
+	if len(failures) == 0 {
+		return nil
+	}
+
+	if errs := pipe.FailSink.Drain(failures); errs != nil {
+		return fmt.Errorf("received error on failure drain: %v", errs)
 	}
 
 	return nil

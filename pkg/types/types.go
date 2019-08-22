@@ -53,3 +53,10 @@ func (evt *Event) Bytes() []byte {
 func (evt *Event) Context() *context.Context {
 	return evt.ctx
 }
+
+//NewBytes creates a copy of the event with the new bytes
+func (evt *Event) NewBytes(bytes []byte) *Event {
+	cpy := Event(*evt)
+	cpy.bytes = bytes
+	return &cpy
+}

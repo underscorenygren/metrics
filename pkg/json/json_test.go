@@ -11,6 +11,7 @@ import (
 	"github.com/underscorenygren/metrics/pkg/sink/buffer"
 	"github.com/underscorenygren/metrics/pkg/source"
 	"github.com/underscorenygren/metrics/pkg/types"
+	"go.uber.org/zap"
 	"strings"
 )
 
@@ -26,8 +27,12 @@ type testResult struct {
 
 var _ = Describe("Json", func() {
 	var testBytes [][]byte
-	logging.ConfigureDevelopment(GinkgoWriter)
+	var pipe *pipeline.Pipeline
+	var sink *buffer.Buffer
+	logger := logging.ConfigureDevelopment(GinkgoWriter)
 
+	//We use Ginkgo's suggested method to put common setup
+	//in BeforeEach and assign to vars
 	BeforeEach(func() {
 		testBytes = [][]byte{}
 		for i := 0; i < 3; i++ {
@@ -35,16 +40,21 @@ var _ = Describe("Json", func() {
 			Expect(err).To(BeNil())
 			testBytes = append(testBytes, bytes)
 		}
+		//make pipeline for processing
+		src := source.NewProgrammaticSource()
+		sink = buffer.Sink()
+		pipe = pipeline.NewPipeline(src, sink)
+
+		//fill pipeline and close source
+		for _, bytes := range testBytes {
+			src.PutBytes(bytes)
+		}
+		src.Close()
 	})
 
 	It("parses and maps sequence of json events", func(done Done) {
 
-		//sets up inspecteable pipeline
-		src := source.NewProgrammaticSource()
-		sink := buffer.Sink()
-		pipe := pipeline.NewPipeline(src, sink)
-
-		//some fake dynamic data to add to ojbect
+		//some fake dynamic data to add to object in mapper
 		i := 0
 		enumeration := func() int {
 			pre := i
@@ -59,12 +69,6 @@ var _ = Describe("Json", func() {
 					SetInt("index", enumeration()).
 					SetString("a", strings.Repeat("a", i))
 			})
-
-		//put events and close source
-		for _, bytes := range testBytes {
-			src.PutBytes(bytes)
-		}
-		src.Close()
 
 		//execute pipeline
 		err := pipe.Flow()
@@ -85,6 +89,30 @@ var _ = Describe("Json", func() {
 
 		//ensure marshalling worked
 		Expect(sink.Events).To(Equal(ref))
+
+		close(done)
+	})
+
+	It("parses json data, reads contents", func(done Done) {
+
+		ref := 3 // we just add all the IDs together
+		total := 0
+
+		pipe.MapFn = pkgjson.Mapper(
+			func(jsonEvent *pkgjson.Event) *pkgjson.Event {
+				//Uses underlying V to get value
+				v := jsonEvent.V.GetInt("id")
+				logger.Debug("id is", zap.Int("id", v))
+				total += v
+				return jsonEvent
+			})
+
+		//execute pipeline
+		err := pipe.Flow()
+		Expect(err).To(Equal(source.ErrSourceClosed))
+
+		//ids should have been summed
+		Expect(total).To(Equal(ref))
 
 		close(done)
 	})

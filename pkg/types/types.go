@@ -1,9 +1,14 @@
 package types
 
+import "context"
+
 //Event a single event in the system. Passed around as a typed
 //object instead of a native type to make additions to class easier.
 type Event struct {
+	//the raw bytes of the event, unprocessed
 	bytes []byte
+	//stores context for event
+	ctx *context.Context
 }
 
 //Sink A generic class for capturing all implementations
@@ -19,7 +24,7 @@ type Sink interface {
 }
 
 //MapFn mapfn
-type MapFn func(*Event) *Event
+type MapFn func(*Event) (*Event, error)
 
 //Source source
 type Source interface {
@@ -42,4 +47,9 @@ func NewEventFromBytes(bytes []byte) Event {
 //Bytes returns the bytes of the event
 func (evt *Event) Bytes() []byte {
 	return evt.bytes
+}
+
+//Context gets the event context
+func (evt *Event) Context() *context.Context {
+	return evt.ctx
 }

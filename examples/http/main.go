@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/blackhole"
 	"github.com/underscorenygren/metrics/pkg/http"
-	"github.com/underscorenygren/metrics/pkg/optional"
-	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
+	"github.com/underscorenygren/metrics/pkg/types/optional"
 	"os"
 )
 

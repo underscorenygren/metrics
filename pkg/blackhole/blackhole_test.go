@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/underscorenygren/metrics/internal"
-	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
+	"github.com/underscorenygren/metrics/pkg/blackhole"
 )
 
 var _ = Describe("Blackhole", func() {

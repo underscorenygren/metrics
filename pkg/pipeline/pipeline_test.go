@@ -6,10 +6,11 @@ import (
 
 	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/blackhole"
+	"github.com/underscorenygren/metrics/pkg/buffer"
+	"github.com/underscorenygren/metrics/pkg/errors"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
-	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
-	"github.com/underscorenygren/metrics/pkg/sink/buffer"
-	"github.com/underscorenygren/metrics/pkg/source"
+	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 )
@@ -45,14 +46,14 @@ func (fail *failSink) Drain(events []types.Event) []error {
 var _ = Describe("Pipeline", func() {
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 
-	var testSource *source.ProgrammaticSource
+	var testSource *programmatic.Source
 	var total int
 	var p *pipeline.Pipeline
 	nEvents := 3
 	eventBytes := []byte("a")
 
 	BeforeEach(func() {
-		testSource = source.NewProgrammaticSource()
+		testSource = programmatic.NewSource()
 		total = 0
 		p = pipeline.NewPipeline(testSource, blackhole.Sink())
 
@@ -78,7 +79,7 @@ var _ = Describe("Pipeline", func() {
 		Expect(testSource.Close()).To(BeNil())
 		Expect(testSource.PutString("a")).Should(HaveOccurred())
 		err := <-drained
-		Expect(err).To(Equal(source.ErrSourceClosed))
+		Expect(err).To(Equal(errors.ErrSourceClosed))
 		Expect(total).To(Equal(3))
 	})
 
@@ -127,7 +128,7 @@ var _ = Describe("Pipeline", func() {
 
 		//run pipeline
 		Expect(testSource.Close()).To(BeNil())
-		Expect(p.Flow()).To(Equal(source.ErrSourceClosed))
+		Expect(p.Flow()).To(Equal(errors.ErrSourceClosed))
 
 		//last event should end up in failure sink
 		Expect(failed.Events).To(Equal(ref))

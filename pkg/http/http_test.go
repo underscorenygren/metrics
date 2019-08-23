@@ -8,10 +8,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/buffer"
 	"github.com/underscorenygren/metrics/pkg/http"
-	"github.com/underscorenygren/metrics/pkg/optional"
-	"github.com/underscorenygren/metrics/pkg/sink/buffer"
 	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/metrics/pkg/types/optional"
 	nethttp "net/http"
 	"time"
 )

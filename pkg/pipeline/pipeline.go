@@ -3,7 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/sink/blackhole"
+	"github.com/underscorenygren/metrics/pkg/blackhole"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 )

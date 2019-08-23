@@ -7,10 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/buffer"
 	"github.com/underscorenygren/metrics/pkg/kinesis"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
-	"github.com/underscorenygren/metrics/pkg/sink/buffer"
-	"github.com/underscorenygren/metrics/pkg/source"
+	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"net/http"
 )
@@ -55,7 +55,7 @@ var _ = Describe("Kinesis", func() {
 	It("pushes events to kinesis", func() {
 
 		//setup kinesis pipeline
-		src := source.NewProgrammaticSource()
+		src := programmatic.NewSource()
 		p := pipeline.NewPipeline(src, sink)
 		buf := buffer.Sink()
 		p.FailSink = buf

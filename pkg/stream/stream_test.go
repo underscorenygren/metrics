@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"bytes"
-	"github.com/underscorenygren/metrics/pkg/source/stream"
+	"github.com/underscorenygren/metrics/pkg/stream"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"os"
 )

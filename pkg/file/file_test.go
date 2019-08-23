@@ -6,9 +6,9 @@ import (
 
 	"bufio"
 	"github.com/underscorenygren/metrics/internal"
+	"github.com/underscorenygren/metrics/pkg/buffer"
+	"github.com/underscorenygren/metrics/pkg/file"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
-	"github.com/underscorenygren/metrics/pkg/sink/buffer"
-	"github.com/underscorenygren/metrics/pkg/source/file"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"io/ioutil"
 	"os"

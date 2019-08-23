@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
-	"github.com/underscorenygren/metrics/pkg/source"
+	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -51,7 +51,7 @@ type eventServer struct {
 	EventMaker    EventMakerFn
 	SuccessWriter SuccessWriterFn
 	p             *pipeline.Pipeline
-	src           *source.ProgrammaticSource
+	src           *programmatic.Source
 }
 
 //Server accepts events over HTTP and drains to configured sink
@@ -74,7 +74,7 @@ type Config struct {
 
 //NewServer makes a new server instance
 func NewServer(cfg Config) (*Server, error) {
-	src := source.NewProgrammaticSource()
+	src := programmatic.NewSource()
 	host := DefaultHost
 	port := DefaultPort
 	readHeaderTimeout := DefaultReadHeaderTimeout

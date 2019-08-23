@@ -6,10 +6,11 @@ import (
 
 	"encoding/json"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/buffer"
+	"github.com/underscorenygren/metrics/pkg/errors"
 	pkgjson "github.com/underscorenygren/metrics/pkg/json"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
-	"github.com/underscorenygren/metrics/pkg/sink/buffer"
-	"github.com/underscorenygren/metrics/pkg/source"
+	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 	"strings"
@@ -41,7 +42,7 @@ var _ = Describe("Json", func() {
 			testBytes = append(testBytes, bytes)
 		}
 		//make pipeline for processing
-		src := source.NewProgrammaticSource()
+		src := programmatic.NewSource()
 		sink = buffer.Sink()
 		pipe = pipeline.NewPipeline(src, sink)
 
@@ -72,7 +73,7 @@ var _ = Describe("Json", func() {
 
 		//execute pipeline
 		err := pipe.Flow()
-		Expect(err).To(Equal(source.ErrSourceClosed))
+		Expect(err).To(Equal(errors.ErrSourceClosed))
 
 		//build expected result
 		expected := []testResult{
@@ -109,7 +110,7 @@ var _ = Describe("Json", func() {
 
 		//execute pipeline
 		err := pipe.Flow()
-		Expect(err).To(Equal(source.ErrSourceClosed))
+		Expect(err).To(Equal(errors.ErrSourceClosed))
 
 		//ids should have been summed
 		Expect(total).To(Equal(ref))

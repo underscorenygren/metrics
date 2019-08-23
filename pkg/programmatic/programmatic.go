@@ -1,46 +1,43 @@
-package source
+package programmatic
 
 import (
-	"errors"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/errors"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 )
 
-//ErrChannelBroken when we can't put on the channel
-var ErrChannelBroken = errors.New("channel broken")
-
 //ChannelBufferSize the max number of events that can be in flight
 const ChannelBufferSize = 100000
 
-//ProgrammaticSource a source that accept events programatically, through calls to Put
-type ProgrammaticSource struct {
+//Source a source that accept events programatically, through calls to Put
+type Source struct {
 	c      chan *types.Event
 	closed bool
 }
 
-//NewProgrammaticSource creates a ProgrammaticSource
-func NewProgrammaticSource() *ProgrammaticSource {
-	return &ProgrammaticSource{
+//NewSource creates a Source
+func NewSource() *Source {
+	return &Source{
 		c:      make(chan *types.Event, ChannelBufferSize),
 		closed: false,
 	}
 }
 
 //PutBytes Constructs an event from bytes and adds it to the source
-func (manual *ProgrammaticSource) PutBytes(bytes []byte) error {
+func (manual *Source) PutBytes(bytes []byte) error {
 	return manual.Put(types.NewEventFromBytes(bytes))
 }
 
 //PutString Constructs an event from a string and adds it to the source
-func (manual *ProgrammaticSource) PutString(str string) error {
+func (manual *Source) PutString(str string) error {
 	return manual.PutBytes([]byte(str))
 }
 
 //Put Adds an event to the source
-func (manual *ProgrammaticSource) Put(event types.Event) error {
+func (manual *Source) Put(event types.Event) error {
 	if manual.closed {
-		return ErrSourceClosed
+		return errors.ErrSourceClosed
 	}
 	logger := logging.Logger()
 
@@ -51,14 +48,14 @@ func (manual *ProgrammaticSource) Put(event types.Event) error {
 		logger.Debug("Put: channel success", zap.ByteString("event", e.Bytes()))
 	default:
 		logger.Debug("Put: channel fail")
-		return ErrChannelBroken
+		return errors.ErrChannelBroken
 	}
 
 	return nil
 }
 
 //DrawOne draws an event from the source
-func (manual *ProgrammaticSource) DrawOne() (*types.Event, error) {
+func (manual *Source) DrawOne() (*types.Event, error) {
 	logger := logging.Logger()
 
 	logger.Debug("DrawOne: blocking on channel")
@@ -68,14 +65,14 @@ func (manual *ProgrammaticSource) DrawOne() (*types.Event, error) {
 	var err error
 	if !more {
 		logger.Debug("DrawOne: channel closed")
-		err = ErrSourceClosed
+		err = errors.ErrSourceClosed
 	}
 
 	return e, err
 }
 
 //Close Closes the source, disallowing further events
-func (manual *ProgrammaticSource) Close() error {
+func (manual *Source) Close() error {
 	close(manual.c)
 	manual.closed = true
 	return nil

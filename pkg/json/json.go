@@ -9,6 +9,7 @@ import (
 	"github.com/underscorenygren/metrics/pkg/types"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
+	"time"
 )
 
 //Event event in json format
@@ -54,4 +55,11 @@ func Mapper(fn TransformerFn) func(*types.Event) (*types.Event, error) {
 
 		return evt.NewBytes(bytes), nil
 	}
+}
+
+//AddElasticsearchTimestamp convenience function for adding timestamp to an event
+//when shipping to elasticsearch.
+//Should probably live in a different module, but this is will be good enough for now.
+func AddElasticsearchTimestamp(evt *Event) *Event {
+	return evt.SetString("@timestamp", time.Now().UTC().Format(time.RFC3339Nano))
 }

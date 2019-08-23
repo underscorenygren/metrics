@@ -80,4 +80,4 @@ ls:  ## lists available build/run targets
 
 
 test:  ## runs specs
-	curl -X POST -H "header:123" localhost/some-path -d '{"message": "nano"}'
+	@ginkgo -r ./...

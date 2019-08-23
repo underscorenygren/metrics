@@ -124,3 +124,13 @@ func (pipe *Pipeline) AsyncFlow() <-chan error {
 	}()
 	return drained
 }
+
+//Source gets the source for the pipeline
+func (pipe *Pipeline) Source() types.Source {
+	return pipe.source
+}
+
+//Sink gets the sink for the pipeline
+func (pipe *Pipeline) Sink() types.Sink {
+	return pipe.drainTo
+}

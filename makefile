@@ -62,11 +62,11 @@ TARGETS := $(addprefix build-,$(TARGET_NAMES))
 
 build: $(TARGETS) ## builds all targets locally
 
+install: ## install prereqs
+	pip install localstack
+	go get
 
 ## Docker
-
-docker-install:  ## installs dependencies inside golang docker container
-	go mod download
 
 docker-install:  ## installs dependencies inside golang docker container
 	go mod download

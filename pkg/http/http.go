@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"github.com/underscorenygren/metrics/internal/logging"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
@@ -23,27 +24,26 @@ const (
 	DefaultReadTimeout = 2 * time.Second
 	//DefaultWriteTimeout 4 seconds
 	DefaultWriteTimeout = 4 * time.Second
+	//DefaultSuccessCode code to write on success
+	DefaultSuccessCode = http.StatusNoContent
 )
 
 //EventMakerFn function signature for making an event from a request
-type EventMakerFn func(req *http.Request) (*types.Event, error)
+//body is read ahead of time, so provided as an arg and not available as req.Body
+type EventMakerFn func(body []byte, req *http.Request) (*types.Event, error)
 
 //SuccessWriterFn function signature for wirting success responses
 type SuccessWriterFn func(w http.ResponseWriter)
 
 //defaultEventMaker writes body as event
-func defaultEventMaker(req *http.Request) (*types.Event, error) {
-	body, err := ReadBody(req)
-	if err != nil {
-		return nil, err
-	}
+func defaultEventMaker(body []byte, req *http.Request) (*types.Event, error) {
 	evt := types.NewEventFromBytes(body)
 	return &evt, nil
 }
 
 //default success function writes no content response code
 func defaultSuccessFn(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(DefaultSuccessCode)
 }
 
 //eventServer inner class used to register ServeHTTP
@@ -143,12 +143,14 @@ func (srv *Server) ListenAndServe() error {
 	logger := logging.Logger()
 
 	go func() {
+		logger.Debug("http.ListenAndServe: starting http")
 		err := srv.httpServer.ListenAndServe()
 		logger.Error("http server error", zap.Error(err))
 		errChan <- err
 	}()
 
 	go func() {
+		logger.Debug("http.ListenAndServe: starting pipeline")
 		err := srv.eventServer.p.Flow()
 		logger.Error("event pipeline error", zap.Error(err))
 		errChan <- err
@@ -162,16 +164,18 @@ func (srv *Server) ListenAndServe() error {
 //configured sink
 func (s *eventServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logger := logging.Logger()
-	logger.Debug("received event",
-		//only reads body if debug set, throw away erorr
-		zap.ByteString("body",
-			//body read in closure to throw away error
-			func() []byte {
-				b, _ := ReadBody(req)
-				return b
-			}()))
-	evt, err := s.EventMaker(req)
+
+	body, err := ReadBody(req)
+	logger.Debug("http.ServeHTTP: request received", zap.ByteString("body", body))
 	if err != nil {
+		logger.Debug("http.ServeHTTP: ReadBody error")
+		s.handleError(err, w)
+		return
+	}
+
+	evt, err := s.EventMaker(body, req)
+	if err != nil {
+		logger.Debug("http.ServeHTTP: EventMaker error")
 		s.handleError(err, w)
 		return
 	}
@@ -193,4 +197,13 @@ func (s *eventServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (s *eventServer) handleError(err error, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 	logging.Logger().Error("error on request", zap.Error(err))
+}
+
+//Shutdown stops the server
+func (srv *Server) Shutdown(ctx context.Context) {
+	logger := logging.Logger()
+	logger.Debug("http.Shutdown starting")
+	srv.eventServer.src.Close()
+	srv.httpServer.Shutdown(ctx)
+	logger.Debug("http.Shutdown finished")
 }

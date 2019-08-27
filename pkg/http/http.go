@@ -3,7 +3,9 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/underscorenygren/metrics/internal/logging"
+	"github.com/underscorenygren/metrics/pkg/pipe"
 	"github.com/underscorenygren/metrics/pkg/pipeline"
 	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
@@ -50,14 +52,17 @@ func defaultSuccessFn(w http.ResponseWriter) {
 type eventServer struct {
 	EventMaker    EventMakerFn
 	SuccessWriter SuccessWriterFn
-	p             *pipeline.Pipeline
-	src           *programmatic.Source
+	stages        []types.Stage
+	sources       []types.Source
 }
 
-//Server accepts events over HTTP and drains to configured sink
+//Server accepts events over HTTP
+//Can be configured to route requests to different sinks, will
+//ship all to default sink unless configured otherwise
 type Server struct {
 	eventServer *eventServer
 	httpServer  *http.Server
+	Router      *mux.Router
 }
 
 //Config server configuration
@@ -70,11 +75,11 @@ type Config struct {
 	EventMaker        EventMakerFn
 	SuccessWriter     SuccessWriterFn
 	Sink              types.Sink
+	Router            *mux.Router
 }
 
 //NewServer makes a new server instance
 func NewServer(cfg Config) (*Server, error) {
-	src := programmatic.NewSource()
 	host := DefaultHost
 	port := DefaultPort
 	readHeaderTimeout := DefaultReadHeaderTimeout
@@ -82,10 +87,7 @@ func NewServer(cfg Config) (*Server, error) {
 	writeTimeout := DefaultWriteTimeout
 	eventMaker := defaultEventMaker
 	successWriter := defaultSuccessFn
-	sink := cfg.Sink
-	if sink == nil {
-		return nil, fmt.Errorf("cannot have nil sink")
-	}
+	router := mux.NewRouter()
 
 	if cfg.Host != nil {
 		host = *cfg.Host
@@ -112,14 +114,20 @@ func NewServer(cfg Config) (*Server, error) {
 	eventServer := &eventServer{
 		EventMaker:    eventMaker,
 		SuccessWriter: successWriter,
-		p:             pipeline.NewPipeline(src, sink),
-		src:           src,
+		stages:        []types.Stage{},
+	}
+
+	//all servers are created with routing enabled, but as
+	//a shortcut we allow providing just a sink to route
+	//there by default without using handlefunc
+	if sink := cfg.Sink; sink != nil {
+		router.NotFoundHandler = http.HandlerFunc(eventServer.makeHandleFunc(sink))
 	}
 
 	addr := fmt.Sprintf("%s:%d", host, port)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           eventServer,
+		Handler:           router,
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
@@ -128,12 +136,8 @@ func NewServer(cfg Config) (*Server, error) {
 	return &Server{
 		eventServer: eventServer,
 		httpServer:  httpServer,
+		Router:      router,
 	}, nil
-}
-
-//ReadBody reads body from a request
-func ReadBody(req *http.Request) ([]byte, error) {
-	return ioutil.ReadAll(req.Body)
 }
 
 //ListenAndServe starts server listening on vents
@@ -151,59 +155,96 @@ func (srv *Server) ListenAndServe() error {
 
 	go func() {
 		logger.Debug("http.ListenAndServe: starting pipeline")
-		err := srv.eventServer.p.Flow()
-		logger.Error("event pipeline error", zap.Error(err))
-		errChan <- err
+		channel := pipeline.ParalellFailFirst(srv.eventServer.stages, logger)
+		for err := range channel {
+			logger.Error("event pipeline error", zap.Error(err))
+			errChan <- err
+			break
+		}
+		logger.Debug("http.ListenAndServe: pipeline ended")
 	}()
 
 	return <-errChan
 }
 
-//ServeHTTP Fulfills http interface for webserver
-//reads request and submits it as an event to
-//configured sink
-func (s *eventServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	logger := logging.Logger()
-
-	body, err := ReadBody(req)
-	logger.Debug("http.ServeHTTP: request received", zap.ByteString("body", body))
-	if err != nil {
-		logger.Debug("http.ServeHTTP: ReadBody error")
-		s.handleError(err, w)
-		return
-	}
-
-	evt, err := s.EventMaker(body, req)
-	if err != nil {
-		logger.Debug("http.ServeHTTP: EventMaker error")
-		s.handleError(err, w)
-		return
-	}
-
-	if evt != nil {
-		logger.Debug("made event", zap.ByteString("event", evt.Bytes()))
-		err = s.src.Put(*evt)
-		if err != nil {
-			s.handleError(err, w)
-			return
-		}
-	} else {
-		logger.Debug("event pruned")
-	}
-	s.SuccessWriter(w)
-}
-
-//error handling function
-func (s *eventServer) handleError(err error, w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadRequest)
-	logging.Logger().Error("error on request", zap.Error(err))
+//MakeHandleFunc Used to configure routing. Provide as argument to
+//mux.HandleFunc by accessing the underlying router
+func (srv *Server) MakeHandleFunc(sink types.Sink) func(w http.ResponseWriter, req *http.Request) {
+	return srv.eventServer.makeHandleFunc(sink)
 }
 
 //Shutdown stops the server
 func (srv *Server) Shutdown(ctx context.Context) {
 	logger := logging.Logger()
 	logger.Debug("http.Shutdown starting")
-	srv.eventServer.src.Close()
+	for _, src := range srv.eventServer.sources {
+		if err := src.Close(); err != nil {
+			logger.Debug("http.Shutdown src close err", zap.Error(err))
+		}
+	}
 	srv.httpServer.Shutdown(ctx)
 	logger.Debug("http.Shutdown finished")
+}
+
+//internally, all handlefunc logic is done on eventServer
+//Adds a sink and routes request to it using programmatic sink
+func (s *eventServer) makeHandleFunc(sink types.Sink) func(w http.ResponseWriter, req *http.Request) {
+
+	src := s.addSink(sink)
+	s.sources = append(s.sources, src)
+	//This is the ServeHTTP request
+	return func(w http.ResponseWriter, req *http.Request) {
+
+		logger := logging.Logger()
+
+		body, err := readBody(req)
+		logger.Debug("http.ServeHTTP: request received", zap.ByteString("body", body))
+		if err != nil {
+			logger.Debug("http.ServeHTTP: ReadBody error")
+			s.handleError(err, w)
+			return
+		}
+
+		evt, err := s.EventMaker(body, req)
+		if err != nil {
+			logger.Debug("http.ServeHTTP: EventMaker error")
+			s.handleError(err, w)
+			return
+		}
+
+		if evt != nil {
+			logger.Debug("made event", zap.ByteString("event", evt.Bytes()))
+			err = src.Put(*evt)
+			if err != nil {
+				s.handleError(err, w)
+				return
+			}
+		} else {
+			logger.Debug("event pruned")
+		}
+
+		s.SuccessWriter(w)
+	}
+}
+
+//writes en arror when request is malformatted
+func (s *eventServer) handleError(err error, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+	logging.Logger().Error("error on request", zap.Error(err))
+}
+
+//adds sink into internal structure and creates corresponding source
+func (s *eventServer) addSink(sink types.Sink) *programmatic.Source {
+	src := programmatic.NewSource()
+	stage, err := pipe.Stage(src, sink)
+	if err != nil {
+		logging.Logger().Fatal("couldn't create stage", zap.Error(err))
+	}
+	s.stages = append(s.stages, stage)
+	return src
+}
+
+//readBody reads body from a request
+func readBody(req *http.Request) ([]byte, error) {
+	return ioutil.ReadAll(req.Body)
 }

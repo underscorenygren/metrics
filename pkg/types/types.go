@@ -23,20 +23,15 @@ type Sink interface {
 	Drain([]Event) []error
 }
 
-//MapFn mapfn
-type MapFn func(*Event) (*Event, error)
-
 //Source source
 type Source interface {
 	DrawOne() (*Event, error)
 	Close() error
 }
 
-//Pipeline pipeline
-type Pipeline interface {
-	Source(Source)
-	Map(MapFn)
-	DrainTo(Sink)
+//Stage stage
+type Stage interface {
+	Flow() error
 }
 
 //NewEventFromBytes creates an event object from a set of bytes

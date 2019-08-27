@@ -12,9 +12,18 @@ import (
 	"github.com/underscorenygren/metrics/pkg/http"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"github.com/underscorenygren/metrics/pkg/types/optional"
+	"go.uber.org/zap"
 	nethttp "net/http"
 	"time"
 )
+
+func shutdown(s *http.Server) {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(800)*time.Millisecond)
+	defer cancel()
+	s.Shutdown(ctx)
+}
 
 var _ = Describe("Http", func() {
 	var s *http.Server
@@ -22,19 +31,16 @@ var _ = Describe("Http", func() {
 	var err error
 	testPort := 10329
 	testHost := "127.0.0.1"
-	testURL := fmt.Sprintf("http://%s:%d/", testHost, testPort)
-	testBytes := []byte("hello world")
-	//shutdown is closure to make easy to call from tests
-	shutdown := func() {
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			time.Duration(800)*time.Millisecond)
-		defer cancel()
-		s.Shutdown(ctx)
+	testURL := func(p int) string {
+		return fmt.Sprintf("http://%s:%d/", testHost, p)
 	}
-	logging.ConfigureDevelopment(GinkgoWriter)
+	testBytes := []byte("hello world")
+	ref := types.NewEventFromBytes(testBytes)
+	startupTime := 200 * time.Millisecond
 
-	BeforeEach(func() {
+	logger := logging.ConfigureDevelopment(GinkgoWriter)
+
+	It("server handles events", func(done Done) {
 		bufferSink = buffer.Sink()
 		s, err = http.NewServer(http.Config{
 			Port: optional.Int(testPort),
@@ -44,26 +50,61 @@ var _ = Describe("Http", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		go s.ListenAndServe()
-	})
+		//We use sleeps to let things progress through pipeline, but should probably do better here
+		time.Sleep(startupTime)
 
-	It("server handles events", func(done Done) {
-		ref := types.NewEventFromBytes(testBytes)
 		//queue a few events
 		for i := 0; i < 2; i++ {
-			resp, err := nethttp.Post(testURL, "text/plain", bytes.NewReader(testBytes))
+			url := testURL(testPort)
+			logger.Debug("posting to", zap.String("url", url))
+			resp, err := nethttp.Post(url, "text/plain", bytes.NewReader(testBytes))
 			Expect(err).To(BeNil())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(http.DefaultSuccessCode))
 		}
+		time.Sleep(startupTime)
 
 		//events are there
 		Expect(bufferSink.Events).To(Equal([]types.Event{ref, ref}))
-		shutdown()
+		shutdown(s)
 		close(done)
 	})
 
-	It("a second server started doesn't fail", func(done Done) {
-		shutdown()
+	It("routes two different request to different sinks", func(done Done) {
+		bufferSink = buffer.Sink()
+		port := testPort + 1
+		s, err = http.NewServer(http.Config{
+			Port: optional.Int(port),
+			Host: optional.String(testHost),
+			Sink: bufferSink,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		otherSink := buffer.Sink()
+		otherSuffix := "other"
+		//adds different sink to route
+		s.Router.
+			PathPrefix(fmt.Sprintf("/%s", otherSuffix)).
+			Subrouter().
+			HandleFunc("/", s.MakeHandleFunc(otherSink))
+
+		go s.ListenAndServe()
+		time.Sleep(startupTime)
+
+		//put an event on each route
+		for _, suffix := range []string{"", "other/"} {
+			url := fmt.Sprintf("%s%s", testURL(port), suffix)
+			logger.Debug("posting to", zap.String("url", url))
+			resp, err := nethttp.Post(url, "text/plain", bytes.NewReader(testBytes))
+			Expect(err).To(BeNil())
+			defer resp.Body.Close()
+			Expect(resp.StatusCode).To(Equal(http.DefaultSuccessCode))
+		}
+		//We use sleeps to let things progress through pipeline, but should probably do better here
+		time.Sleep(startupTime)
+
+		Expect(bufferSink.Events).To(Equal([]types.Event{ref}))
+		Expect(otherSink.Events).To(Equal([]types.Event{ref}))
+		shutdown(s)
 		close(done)
 	})
 })

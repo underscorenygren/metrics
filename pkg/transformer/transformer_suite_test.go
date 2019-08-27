@@ -1,4 +1,4 @@
-package pipeline_test
+package transformer_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestPipeline(t *testing.T) {
+func TestTransformer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pipeline Suite")
+	RunSpecs(t, "Transformer Suite")
 }

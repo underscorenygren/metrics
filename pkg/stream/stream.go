@@ -2,6 +2,7 @@ package stream
 
 import (
 	"bufio"
+	"github.com/underscorenygren/metrics/pkg/errors"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"io"
 )
@@ -33,5 +34,9 @@ func (source *Source) DrawOne() (*types.Event, error) {
 		evt := types.NewEventFromBytes(source.Scanner.Bytes())
 		return &evt, nil
 	}
-	return nil, source.Scanner.Err()
+	err := source.Scanner.Err()
+	if err == nil {
+		err = errors.ErrStreamEnd
+	}
+	return nil, err
 }

@@ -8,8 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/underscorenygren/metrics/internal/logging"
 	"github.com/underscorenygren/metrics/pkg/buffer"
+	"github.com/underscorenygren/metrics/pkg/failsink"
 	"github.com/underscorenygren/metrics/pkg/kinesis"
-	"github.com/underscorenygren/metrics/pkg/pipeline"
+	"github.com/underscorenygren/metrics/pkg/pipe"
 	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"net/http"
@@ -56,9 +57,12 @@ var _ = Describe("Kinesis", func() {
 
 		//setup kinesis pipeline
 		src := programmatic.NewSource()
-		p := pipeline.NewPipeline(src, sink)
 		buf := buffer.Sink()
-		p.FailSink = buf
+		withFailures, err := failsink.Sink(sink, buf)
+		Expect(err).To(BeNil())
+
+		p, err := pipe.Stage(src, withFailures)
+		Expect(err).To(BeNil())
 
 		//Run the pipeline
 		src.PutString("a")

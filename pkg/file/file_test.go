@@ -6,9 +6,10 @@ import (
 
 	"bufio"
 	"github.com/underscorenygren/metrics/internal"
+	"github.com/underscorenygren/metrics/internal/logging"
 	"github.com/underscorenygren/metrics/pkg/buffer"
 	"github.com/underscorenygren/metrics/pkg/file"
-	"github.com/underscorenygren/metrics/pkg/pipeline"
+	"github.com/underscorenygren/metrics/pkg/pipe"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,8 @@ import (
 )
 
 var _ = Describe("File", func() {
+
+	logging.ConfigureDevelopment(GinkgoWriter)
 
 	It("reads a sequence of events from a file", func(done Done) {
 
@@ -37,7 +40,9 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		pipeline.NewPipeline(source, buf).Flow()
+		p, err := pipe.Stage(source, buf)
+		Expect(err).To(BeNil())
+		p.Flow()
 		Expect(buf.Events).To(Equal(refEvents))
 		close(done)
 	})
@@ -60,7 +65,9 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		pipeline.NewPipeline(source, buf).Flow()
+		p, err := pipe.Stage(source, buf)
+		Expect(err).To(BeNil())
+		p.Flow()
 		Expect(buf.Events).To(Equal(refEvents))
 		close(done)
 	})
@@ -78,7 +85,9 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		pipeline.NewPipeline(source, buf).Flow()
+		p, err := pipe.Stage(source, buf)
+		Expect(err).To(BeNil())
+		p.Flow()
 
 		Expect(buf.Events).To(Equal(refEvents))
 		close(done)

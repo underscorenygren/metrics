@@ -1,4 +1,4 @@
-package pipeline_test
+package failsink_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,7 +9,8 @@ import (
 	"github.com/underscorenygren/metrics/pkg/blackhole"
 	"github.com/underscorenygren/metrics/pkg/buffer"
 	"github.com/underscorenygren/metrics/pkg/errors"
-	"github.com/underscorenygren/metrics/pkg/pipeline"
+	"github.com/underscorenygren/metrics/pkg/failsink"
+	"github.com/underscorenygren/metrics/pkg/pipe"
 	"github.com/underscorenygren/metrics/pkg/programmatic"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
@@ -43,76 +44,24 @@ func (fail *failSink) Drain(events []types.Event) []error {
 	return nil
 }
 
-var _ = Describe("Pipeline", func() {
-	logger := logging.ConfigureDevelopment(GinkgoWriter)
+var _ = Describe("Failsink", func() {
 
 	var testSource *programmatic.Source
-	var total int
-	var p *pipeline.Pipeline
+	var p *pipe.Pipe
+	var err error
 	nEvents := 3
 	eventBytes := []byte("a")
 
+	logger := logging.ConfigureDevelopment(GinkgoWriter)
+
 	BeforeEach(func() {
 		testSource = programmatic.NewSource()
-		total = 0
-		p = pipeline.NewPipeline(testSource, blackhole.Sink())
+		p, err = pipe.Stage(testSource, blackhole.Sink())
+		Expect(err).To(BeNil())
 
 		for i := 0; i < nEvents; i++ {
 			testSource.PutBytes(eventBytes)
 		}
-	})
-
-	It("drained events are counted", func() {
-
-		counter := func(evt *types.Event) (*types.Event, error) {
-			total = total + 1
-			logger.Debug("called counter fn", zap.ByteString("eventBytes", evt.Bytes()), zap.Int("total", total))
-			return evt, nil
-		}
-
-		p.MapFn = counter
-		//processing flow in goroutine, ensures we get expected error
-		//use channel to handle concurrency
-		drained := p.AsyncFlow()
-
-		//After closing source, no more events are counted
-		Expect(testSource.Close()).To(BeNil())
-		Expect(testSource.PutString("a")).Should(HaveOccurred())
-		err := <-drained
-		Expect(err).To(Equal(errors.ErrSourceClosed))
-		Expect(total).To(Equal(3))
-	})
-
-	It("uses map to limit number of processed events", func(done Done) {
-
-		logger.Debug("starting limit test")
-
-		max := 3
-		limitErr := fmt.Errorf("limit")
-
-		limitor := func(evt *types.Event) (*types.Event, error) {
-			logger.Debug("got event", zap.ByteString("event_bytes", evt.Bytes()))
-			if total >= 3 {
-				return nil, limitErr
-			}
-			total = total + 1
-			return evt, nil
-		}
-
-		p.MapFn = limitor
-
-		//Adds more event than max
-		testSource.PutBytes(eventBytes)
-
-		//Flow should end naturally from error in map fn
-		err := p.Flow()
-		Expect(err).To(Equal(limitErr))
-
-		//should have only processed max events
-		Expect(total).To(Equal(max))
-		Expect(testSource.Close()).To(BeNil())
-
-		close(done)
 	})
 
 	It("handles failed events", func(done Done) {
@@ -121,12 +70,14 @@ var _ = Describe("Pipeline", func() {
 		ref := []types.Event{
 			types.NewEventFromBytes(eventBytes)}
 
-		p = pipeline.NewPipeline(testSource, failer)
 		//track failures in buffer
 		failed := buffer.Sink()
-		p.FailSink = failed
+		fs, err := failsink.Sink(failer, failed)
+		Expect(err).To(BeNil())
+		p, err = pipe.Stage(testSource, fs)
+		Expect(err).To(BeNil())
 
-		//run pipeline
+		//run pipe
 		Expect(testSource.Close()).To(BeNil())
 		Expect(p.Flow()).To(Equal(errors.ErrSourceClosed))
 

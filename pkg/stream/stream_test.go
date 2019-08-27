@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"bytes"
+	"github.com/underscorenygren/metrics/pkg/errors"
 	"github.com/underscorenygren/metrics/pkg/stream"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"os"
@@ -26,8 +27,7 @@ var _ = Describe("Stream", func() {
 
 		//stream end results in error
 		read, err = source.DrawOne()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(err).To(BeNil())
+		Expect(err).To(Equal(errors.ErrStreamEnd))
 
 		//no error on close
 		Expect(source.Close()).ShouldNot(HaveOccurred())

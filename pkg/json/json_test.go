@@ -9,8 +9,9 @@ import (
 	"github.com/underscorenygren/metrics/pkg/buffer"
 	"github.com/underscorenygren/metrics/pkg/errors"
 	pkgjson "github.com/underscorenygren/metrics/pkg/json"
-	"github.com/underscorenygren/metrics/pkg/pipeline"
+	"github.com/underscorenygren/metrics/pkg/pipe"
 	"github.com/underscorenygren/metrics/pkg/programmatic"
+	"github.com/underscorenygren/metrics/pkg/transformer"
 	"github.com/underscorenygren/metrics/pkg/types"
 	"go.uber.org/zap"
 	"strings"
@@ -28,7 +29,7 @@ type testResult struct {
 
 var _ = Describe("Json", func() {
 	var testBytes [][]byte
-	var pipe *pipeline.Pipeline
+	var p *pipe.Pipe
 	var sink *buffer.Buffer
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 
@@ -41,16 +42,6 @@ var _ = Describe("Json", func() {
 			Expect(err).To(BeNil())
 			testBytes = append(testBytes, bytes)
 		}
-		//make pipeline for processing
-		src := programmatic.NewSource()
-		sink = buffer.Sink()
-		pipe = pipeline.NewPipeline(src, sink)
-
-		//fill pipeline and close source
-		for _, bytes := range testBytes {
-			src.PutBytes(bytes)
-		}
-		src.Close()
 	})
 
 	It("parses and maps sequence of json events", func(done Done) {
@@ -64,15 +55,30 @@ var _ = Describe("Json", func() {
 		}
 
 		//mapper functoin adds some fields
-		pipe.MapFn = pkgjson.Mapper(
+		fn := pkgjson.Mapper(
 			func(jsonEvent *pkgjson.Event) *pkgjson.Event {
 				return jsonEvent.
 					SetInt("index", enumeration()).
 					SetString("a", strings.Repeat("a", i))
 			})
 
-		//execute pipeline
-		err := pipe.Flow()
+		testSource := programmatic.NewSource()
+
+		t, err := transformer.Source(testSource, fn)
+
+		//Make pipe
+		sink = buffer.Sink()
+		p, err = pipe.Stage(t, sink)
+		Expect(err).To(BeNil())
+
+		//fill pipe and close source
+		for _, bytes := range testBytes {
+			testSource.PutBytes(bytes)
+		}
+		testSource.Close()
+
+		//execute pipe
+		err = p.Flow()
 		Expect(err).To(Equal(errors.ErrSourceClosed))
 
 		//build expected result
@@ -99,7 +105,7 @@ var _ = Describe("Json", func() {
 		ref := 3 // we just add all the IDs together
 		total := 0
 
-		pipe.MapFn = pkgjson.Mapper(
+		fn := pkgjson.Mapper(
 			func(jsonEvent *pkgjson.Event) *pkgjson.Event {
 				//Uses underlying V to get value
 				v := jsonEvent.V.GetInt("id")
@@ -108,8 +114,23 @@ var _ = Describe("Json", func() {
 				return jsonEvent
 			})
 
-		//execute pipeline
-		err := pipe.Flow()
+		testSource := programmatic.NewSource()
+
+		t, err := transformer.Source(testSource, fn)
+
+		//Make pipe
+		sink = buffer.Sink()
+		p, err = pipe.Stage(t, sink)
+		Expect(err).To(BeNil())
+
+		//fill pipe and close source
+		for _, bytes := range testBytes {
+			testSource.PutBytes(bytes)
+		}
+		testSource.Close()
+
+		//execute pipe
+		err = p.Flow()
 		Expect(err).To(Equal(errors.ErrSourceClosed))
 
 		//ids should have been summed

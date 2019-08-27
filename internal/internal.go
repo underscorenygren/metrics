@@ -21,3 +21,12 @@ func StringsToEvents(stringSlice []string) []types.Event {
 	}
 	return ToEvents(bytesSlice)
 }
+
+//DrainOne Helper function for draining just one event
+func DrainOne(sink types.Sink, e types.Event) error {
+	errs := sink.Drain([]types.Event{e})
+	if errs != nil {
+		return errs[0]
+	}
+	return nil
+}

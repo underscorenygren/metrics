@@ -1,4 +1,4 @@
-module github.com/underscorenygren/metrics
+module github.com/underscorenygren/partaj
 
 go 1.12
 

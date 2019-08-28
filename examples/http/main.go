@@ -10,7 +10,7 @@ import (
 
 func main() {
 	logger := logging.ConfigureDevelopment(os.Stderr)
-	sink := blackhole.Sink()
+	sink := blackhole.NewSink()
 	s, err := http.NewServer(http.Config{
 		Port: optional.Int(3033),
 		Host: optional.String("127.0.0.1"),

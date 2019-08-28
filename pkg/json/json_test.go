@@ -30,7 +30,7 @@ type testResult struct {
 var _ = Describe("Json", func() {
 	var testBytes [][]byte
 	var p *pipe.Pipe
-	var sink *buffer.Buffer
+	var sink = buffer.NewSink()
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 
 	//We use Ginkgo's suggested method to put common setup
@@ -42,6 +42,7 @@ var _ = Describe("Json", func() {
 			Expect(err).To(BeNil())
 			testBytes = append(testBytes, bytes)
 		}
+		sink = buffer.NewSink()
 	})
 
 	It("parses and maps sequence of json events", func(done Done) {
@@ -67,7 +68,6 @@ var _ = Describe("Json", func() {
 		t, err := transformer.Source(testSource, fn)
 
 		//Make pipe
-		sink = buffer.Sink()
 		p, err = pipe.Stage(t, sink)
 		Expect(err).To(BeNil())
 
@@ -119,7 +119,7 @@ var _ = Describe("Json", func() {
 		t, err := transformer.Source(testSource, fn)
 
 		//Make pipe
-		sink = buffer.Sink()
+		sink = buffer.NewSink()
 		p, err = pipe.Stage(t, sink)
 		Expect(err).To(BeNil())
 

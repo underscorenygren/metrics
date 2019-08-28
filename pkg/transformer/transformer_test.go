@@ -51,7 +51,7 @@ var _ = Describe("Transformer", func() {
 
 		//processing flow in goroutine, ensures we get expected error
 		//use channel to handle concurrency
-		p, err = pipe.Stage(t, blackhole.Sink())
+		p, err = pipe.Stage(t, blackhole.NewSink())
 		Expect(err).To(BeNil())
 
 		drained := pipeline.AsyncFlow(p)
@@ -81,7 +81,7 @@ var _ = Describe("Transformer", func() {
 		t, err := transformer.Source(testSource, limitor)
 		Expect(err).To(BeNil())
 
-		p, err = pipe.Stage(t, blackhole.Sink())
+		p, err = pipe.Stage(t, blackhole.NewSink())
 		Expect(err).To(BeNil())
 
 		//Adds more event than max
@@ -115,7 +115,7 @@ var _ = Describe("Transformer", func() {
 			return evt, nil
 		}
 
-		sink := buffer.Sink()
+		sink := buffer.NewSink()
 		t, err := transformer.Source(testSource, mapper)
 		Expect(err).To(BeNil())
 

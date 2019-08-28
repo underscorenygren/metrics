@@ -35,7 +35,7 @@ var _ = Describe("File", func() {
 
 		refEvents := internal.StringsToEvents(ref)
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 
@@ -60,7 +60,7 @@ var _ = Describe("File", func() {
 
 		refEvents := internal.StringsToEvents([]string{"one"})
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 
@@ -80,7 +80,7 @@ var _ = Describe("File", func() {
 
 		refEvents := []types.Event{}
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 

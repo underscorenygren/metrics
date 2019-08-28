@@ -27,7 +27,6 @@ func shutdown(s *http.Server) {
 
 var _ = Describe("Http", func() {
 	var s *http.Server
-	var bufferSink *buffer.Buffer
 	var err error
 	testPort := 10329
 	testHost := "127.0.0.1"
@@ -41,7 +40,7 @@ var _ = Describe("Http", func() {
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 
 	It("server handles events", func(done Done) {
-		bufferSink = buffer.Sink()
+		bufferSink := buffer.NewSink()
 		s, err = http.NewServer(http.Config{
 			Port: optional.Int(testPort),
 			Host: optional.String(testHost),
@@ -71,7 +70,7 @@ var _ = Describe("Http", func() {
 	})
 
 	It("routes two different request to different sinks", func(done Done) {
-		bufferSink = buffer.Sink()
+		bufferSink := buffer.NewSink()
 		port := testPort + 1
 		s, err = http.NewServer(http.Config{
 			Port: optional.Int(port),
@@ -79,7 +78,7 @@ var _ = Describe("Http", func() {
 			Sink: bufferSink,
 		})
 		Expect(err).ToNot(HaveOccurred())
-		otherSink := buffer.Sink()
+		otherSink := buffer.NewSink()
 		otherSuffix := "other"
 		//adds different sink to route
 		s.Router.

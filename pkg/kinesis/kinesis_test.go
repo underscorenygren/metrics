@@ -57,7 +57,7 @@ var _ = Describe("Kinesis", func() {
 
 		//setup kinesis pipeline
 		src := programmatic.NewSource()
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		withFailures, err := failsink.Sink(sink, buf)
 		Expect(err).To(BeNil())
 

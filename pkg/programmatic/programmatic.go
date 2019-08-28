@@ -1,3 +1,6 @@
+/*
+Package programmatic provides a Source that can receive events using Put function calls.
+*/
 package programmatic
 
 import (
@@ -7,16 +10,19 @@ import (
 	"go.uber.org/zap"
 )
 
-//ChannelBufferSize the max number of events that can be in flight
+//ChannelBufferSize is the max number of events that can be in flight.
 const ChannelBufferSize = 100000
 
-//Source a source that accept events programatically, through calls to Put
+/*
+Source fullfills the Source interface. It accepts events using Put commands,
+and stores them in an internal channel.
+*/
 type Source struct {
 	c      chan *types.Event
 	closed bool
 }
 
-//NewSource creates a Source
+//NewSource creates a new programmatic Source.
 func NewSource() *Source {
 	return &Source{
 		c:      make(chan *types.Event, ChannelBufferSize),
@@ -24,17 +30,22 @@ func NewSource() *Source {
 	}
 }
 
-//PutBytes Constructs an event from bytes and adds it to the source
+//PutBytes constructs a new event from bytes and adds it to the source.
 func (manual *Source) PutBytes(bytes []byte) error {
 	return manual.Put(types.NewEventFromBytes(bytes))
 }
 
-//PutString Constructs an event from a string and adds it to the source
+//PutString constructs an event from a string and adds it to the source.
 func (manual *Source) PutString(str string) error {
 	return manual.PutBytes([]byte(str))
 }
 
-//Put Adds an event to the source
+/*
+Put adds an event to the source.
+
+Returns an error if source has been closed,
+or if the underlying channel is broken.
+*/
 func (manual *Source) Put(event types.Event) error {
 	if manual.closed {
 		return errors.ErrSourceClosed
@@ -54,7 +65,9 @@ func (manual *Source) Put(event types.Event) error {
 	return nil
 }
 
-//DrawOne draws an event from the source
+/*
+DrawOne draws one event from the underlying channel.
+*/
 func (manual *Source) DrawOne() (*types.Event, error) {
 	logger := logging.Logger()
 
@@ -71,7 +84,7 @@ func (manual *Source) DrawOne() (*types.Event, error) {
 	return e, err
 }
 
-//Close Closes the source, disallowing further events
+//Close closes the source, the underlying channel, causing further puts to error.
 func (manual *Source) Close() error {
 	close(manual.c)
 	manual.closed = true

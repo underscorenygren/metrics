@@ -1,4 +1,7 @@
-//Package pipeline links many stages together
+/*
+Package pipeline provides functionality for linking many stages together,
+and other convenience functions.
+*/
 package pipeline
 
 import (
@@ -8,8 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
-//ParalellFailFirst executes stages in paralell, and returns a channel
-//that will return any errors as soon as they supplied
+/*
+ParalellFailFirst executes supplied stages in paralell goroutines.
+
+Returns a read-only for any errors returned by failed Flows.
+*/
 func ParalellFailFirst(stages []types.Stage, logger *zap.Logger) <-chan error {
 	errChan := make(chan error)
 
@@ -32,9 +38,11 @@ func ParalellFailFirst(stages []types.Stage, logger *zap.Logger) <-chan error {
 	return errChan
 }
 
-/*AsyncFlow calls flow in a goroutine and retuns a channel
- * with the result of the flow when it ends
- */
+/*
+AsyncFlow calls flow in a goroutine and retuns a channel
+which will return the Flow's error, at which point the
+goroutine will also end.
+*/
 func AsyncFlow(s types.Stage) <-chan error {
 	drained := make(chan error)
 	logger := logging.Logger()

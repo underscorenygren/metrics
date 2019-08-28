@@ -1,3 +1,6 @@
+/*
+Package pipe provides a simple stage that connects a source with a sink.
+*/
 package pipe
 
 import (
@@ -8,14 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
-//Pipe A pipeline is the plumbing that connects Sources to Drains,
-//and registers processing on events passing through it.
+//Pipe connects a source to a sink, by sending all events from source to the sink. Implements Stage interface.
 type Pipe struct {
 	source types.Source
 	sink   types.Sink
 }
 
-//Stage creates a pipe that links a source and a sink
+//Stage creates a Pipe that connects a source with a sink.
 func Stage(source types.Source, sink types.Sink) (*Pipe, error) {
 	if source == nil {
 		return nil, fmt.Errorf("source cannot be nil")
@@ -30,9 +32,12 @@ func Stage(source types.Source, sink types.Sink) (*Pipe, error) {
 	}, nil
 }
 
-//Flow the executing loop that draws events from the source,
-//processes and drains them. Ends when Source is closed, and
-//blocks on internal channels, so best run as a goroutine.
+/*
+Flow implements the Stage interface. Continually draws one event from
+the source and sends it to the sink.
+
+Runs continually until sink.Drain returns an error.
+*/
 func (pipe *Pipe) Flow() error {
 
 	logger := logging.Logger()
@@ -66,12 +71,12 @@ func (pipe *Pipe) Flow() error {
 	return nil
 }
 
-//Source gets the source for the pipeline
+//Source gets the source for the pipe.
 func (pipe *Pipe) Source() types.Source {
 	return pipe.source
 }
 
-//Sink gets the sink for the pipeline
+//Sink gets the sink for the pipe.
 func (pipe *Pipe) Sink() types.Sink {
 	return pipe.sink
 }

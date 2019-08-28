@@ -27,6 +27,9 @@ type testResult struct {
 	A     string `json:"a"`
 }
 
+//examples on how to use json in tests
+func Example() {}
+
 var _ = Describe("Json", func() {
 	var testBytes [][]byte
 	var p *pipe.Pipe

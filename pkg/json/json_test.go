@@ -27,7 +27,7 @@ type testResult struct {
 	A     string `json:"a"`
 }
 
-//examples on how to use json in tests
+//examples on how to use json
 func Example() {}
 
 var _ = Describe("Json", func() {

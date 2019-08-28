@@ -15,3 +15,6 @@ var ErrChannelBroken = fmt.Errorf("ChannelBroken")
 
 //ErrStreamEnd is returned when trying to Draw from a closed stream Source.
 var ErrStreamEnd = fmt.Errorf("StreamEnd")
+
+//ErrPutFailure is returned when firehose Sink fails to put all events, e.g. for IAM errors.
+var ErrPutFailure = fmt.Errorf("ErrPutFailure")

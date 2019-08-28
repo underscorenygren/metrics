@@ -17,6 +17,9 @@ import (
 	"time"
 )
 
+//examples show how to use http
+func Example() {}
+
 func shutdown(s *http.Server) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),

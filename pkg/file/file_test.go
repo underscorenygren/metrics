@@ -16,6 +16,9 @@ import (
 	"strings"
 )
 
+//Used to display test code in godoc
+func Example() {}
+
 var _ = Describe("File", func() {
 
 	logging.ConfigureDevelopment(GinkgoWriter)

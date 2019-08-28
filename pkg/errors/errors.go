@@ -1,20 +1,17 @@
+/*
+Package errors defines all typed errors used by all other modules.
+*/
 package errors
 
 import (
 	"fmt"
 )
 
-//ErrSourceClosed returned if you try to put on a closed source
+//ErrSourceClosed is returned when you try to put to a closed programmatic Source.
 var ErrSourceClosed = fmt.Errorf("SourceClosed")
 
-//ErrChannelBroken returned when a source using a channel cannot send to it
+//ErrChannelBroken is returned when a programmatic Source can't send to its internal channel.
 var ErrChannelBroken = fmt.Errorf("ChannelBroken")
 
-//ErrNoRoute returned when a source using a channel cannot send to it
-var ErrNoRoute = fmt.Errorf("NoRoute")
-
-//ErrDrainFailures returned when drain fails in a stage
-var ErrDrainFailures = fmt.Errorf("DrainFailures")
-
-//ErrStreamEnd returned when a stream source is closed
+//ErrStreamEnd is returned when trying to Draw from a closed stream Source.
 var ErrStreamEnd = fmt.Errorf("StreamEnd")

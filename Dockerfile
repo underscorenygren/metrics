@@ -16,4 +16,4 @@ RUN make build
 
 EXPOSE 80
 
-CMD ["./build/logger"]
+CMD ["./build/http"]

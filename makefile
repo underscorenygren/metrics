@@ -1,5 +1,5 @@
 .PHONY: build help test ls
-RUNNER_DIR := runners
+RUNNER_DIR := examples
 
 ## Makefile self-documentation
 ##############################
@@ -57,11 +57,16 @@ clean-%:  ## cleans up build targets
 # suppress errors since one will be empty in docker and vice versa
 LS_CMD = ls $(RUNNER_DIR)/ 2> /dev/null
 TARGET_NAMES := $(shell $(LS_CMD))
-TARGETS := $(addprefix build-,$(TARGET_NAMES))
+BUILD_TARGETS := $(addprefix build-,$(TARGET_NAMES))
+CLEAN_TARGETS := $(addprefix clean-,$(TARGET_NAMES))
 
+build: $(BUILD_TARGETS) ## builds all targets
 
-build: $(TARGETS) ## builds all targets locally
+clean: $(CLEAN_TARGETS) ## cleans all targets
 
+install: ## install prereqs
+	pip install localstack
+	go get
 
 ## Docker
 
@@ -74,6 +79,5 @@ ls:  ## lists available build/run targets
 	@$(LS_CMD) | cat
 
 
-test:  ## test request to local running service
-	curl -X POST -H "header:123" localhost/some-path -d '{"message": "nano"}'
-
+test:  ## runs specs
+	@ginkgo -r ./...

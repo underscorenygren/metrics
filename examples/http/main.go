@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/blackhole"
-	"github.com/underscorenygren/metrics/pkg/http"
-	"github.com/underscorenygren/metrics/pkg/types/optional"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/blackhole"
+	"github.com/underscorenygren/partaj/pkg/http"
+	"github.com/underscorenygren/partaj/pkg/types/optional"
 	"os"
 )
 

@@ -1,8 +1,8 @@
 package file
 
 import (
-	"github.com/underscorenygren/metrics/pkg/stream"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/pkg/stream"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"os"
 )
 

@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/pkg/types"
 )
 
 //ToEvents converts a slice of byte sequences to a slice of events

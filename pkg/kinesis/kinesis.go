@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/firehose"
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 	"os"
 )

@@ -1,9 +1,9 @@
 package programmatic
 
 import (
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/errors"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/errors"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 )
 

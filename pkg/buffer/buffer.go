@@ -1,7 +1,7 @@
 package buffer
 
 import (
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/pkg/types"
 )
 
 //Buffer stores drained event in memory

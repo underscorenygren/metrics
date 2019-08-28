@@ -2,8 +2,8 @@ package stream
 
 import (
 	"bufio"
-	"github.com/underscorenygren/metrics/pkg/errors"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/pkg/errors"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"io"
 )
 

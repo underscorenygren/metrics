@@ -2,8 +2,8 @@ package transformer
 
 import (
 	"fmt"
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 )
 

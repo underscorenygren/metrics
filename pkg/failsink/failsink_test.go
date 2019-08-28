@@ -5,14 +5,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	"fmt"
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/blackhole"
-	"github.com/underscorenygren/metrics/pkg/buffer"
-	"github.com/underscorenygren/metrics/pkg/errors"
-	"github.com/underscorenygren/metrics/pkg/failsink"
-	"github.com/underscorenygren/metrics/pkg/pipe"
-	"github.com/underscorenygren/metrics/pkg/programmatic"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/blackhole"
+	"github.com/underscorenygren/partaj/pkg/buffer"
+	"github.com/underscorenygren/partaj/pkg/errors"
+	"github.com/underscorenygren/partaj/pkg/failsink"
+	"github.com/underscorenygren/partaj/pkg/pipe"
+	"github.com/underscorenygren/partaj/pkg/programmatic"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 )
 

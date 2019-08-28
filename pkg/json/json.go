@@ -5,8 +5,8 @@ package json
 
 import (
 	"fmt"
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
 	"time"

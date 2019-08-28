@@ -1,7 +1,7 @@
 package blackhole
 
 import (
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/pkg/types"
 )
 
 //Drain discard all events

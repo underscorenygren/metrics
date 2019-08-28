@@ -6,13 +6,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/firehose"
-	"github.com/underscorenygren/metrics/internal/logging"
-	"github.com/underscorenygren/metrics/pkg/buffer"
-	"github.com/underscorenygren/metrics/pkg/failsink"
-	"github.com/underscorenygren/metrics/pkg/kinesis"
-	"github.com/underscorenygren/metrics/pkg/pipe"
-	"github.com/underscorenygren/metrics/pkg/programmatic"
-	"github.com/underscorenygren/metrics/pkg/types"
+	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/buffer"
+	"github.com/underscorenygren/partaj/pkg/failsink"
+	"github.com/underscorenygren/partaj/pkg/kinesis"
+	"github.com/underscorenygren/partaj/pkg/pipe"
+	"github.com/underscorenygren/partaj/pkg/programmatic"
+	"github.com/underscorenygren/partaj/pkg/types"
 	"net/http"
 )
 

@@ -1,7 +1,7 @@
 # partaj
 
 Package partaj is a minimal event stream processing framework for reading, processing and writing events,
-using a DSL inspried by functional programming and more cumbersome event processing systems such as Apache Kafka.
+using a DSL inspired by functional programming and more cumbersome event processing systems such as Apache Kafka.
 
 ## Why `partaj`?
 
@@ -23,6 +23,28 @@ _Partaj_ is Swedish slang for a party, and since parties make for great events, 
 
 `partaj` is written as a go 1.12 module.
 
+## Example Usage
+
+Stands up a server and sends body of requests to it to AWS Firehose.
+```go
+package main
+
+import (
+	"github.com/underscorenygren/partaj/pkg/firehose"
+	"github.com/underscorenygren/partaj/pkg/http"
+	"os"
+  "log"
+)
+
+func main() {
+	sink, _ := firehose.NewSink("name-of-my-firehose")
+	s, _ := http.NewServer(http.Config{
+		Sink: sink,
+	})
+	log.Fatal(s.ListenAndServe().Error())
+}
+```
+
 ## Core Concepts
 
 At it's core, `partaj` consistes of three basic types of operators:
@@ -36,15 +58,15 @@ or more stages connected together, with events flowing through them.
 ### Source
 
 Events originates at sources. They can be streaming,
-such as reading from a file [file.go](pkg/file/file.go), or
-event-based, such as events received as a webserver [http.go](pkg/http/http.go).
+such as reading from a file [file.go](./pkg/file/file.go), or
+event-based, such as events received as a webserver [http.go](./pkg/http/http.go).
 
 ### Sink
 
 Sink is an event destination that emit no events itself. Events can
-be discarded with [blackhole.go](pkg/blackhole/blackhole.go), buffered
-in memory for testing purposes [buffer.go](pkg/buffer/buffer.go) or written
-to a persistent store like AWS kinesis [kinesis.go](pkg/kinesis/kinesis.go).
+be discarded with [blackhole.go](./pkg/blackhole/blackhole.go), buffered
+in memory for testing purposes [buffer.go](./pkg/buffer/buffer.go) or written
+to a persistent store like AWS kinesis [kinesis.go](./pkg/kinesis/kinesis.go).
 
 ### Stage
 
@@ -76,9 +98,9 @@ Examples for packages are in [./examples](./examples), in a main package
 keyed under their name.
 
 For example, the `http` source, which receives events as a webserver, is
-declared in [pkg/http/http.go](pkg/http/http.go), with tests
-at [pkg/http/http_test.go](pkg/http/http_test.go) and
-an example at [examples/http/main.go](examples/http/main.go).
+declared in [pkg/http/http.go](./pkg/http/http.go), with tests
+at [pkg/http/http_test.go](./pkg/http/http_test.go) and
+an example at [examples/http/main.go](./examples/http/main.go).
 
 ### Logging
 
@@ -91,4 +113,4 @@ away slow calls when writing Debug events.
 
 ### Testing
 
-Uses Ginkgo and Gomega for testing, [documented here](https://onsi.github.io/ginkgo/)
+Uses Ginkgo and Gomega for testing, [documented here](https://onsi.github.io/ginkgo/).

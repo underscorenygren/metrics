@@ -41,7 +41,7 @@ func main() {
   s, _ := http.NewServer(http.Config{
     Sink: sink,
   })
-  log.Fatal(s.ListenAndServe().Error())
+  log.Fatal(s.ListenAndServe())
 }
 ```
 

@@ -1,3 +1,7 @@
+/*
+Package main is a simple webserver that discard all events
+and logs it's internal processing.
+*/
 package main
 
 import (
@@ -8,7 +12,8 @@ import (
 	"os"
 )
 
-func main() {
+//Example runs the example webserver.
+func Example() {
 	logger := logging.ConfigureDevelopment(os.Stderr)
 	sink := blackhole.NewSink()
 	s, err := http.NewServer(http.Config{
@@ -20,4 +25,8 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	logger.Fatal(s.ListenAndServe().Error())
+}
+
+func main() {
+	Example()
 }

@@ -46,7 +46,7 @@ var _ = Describe("Transformer", func() {
 			return evt, nil
 		}
 
-		t, err := transformer.Source(testSource, counter)
+		t, err := transformer.NewSource(testSource, counter)
 		Expect(err).To(BeNil())
 
 		//processing flow in goroutine, ensures we get expected error
@@ -78,7 +78,7 @@ var _ = Describe("Transformer", func() {
 			return evt, nil
 		}
 
-		t, err := transformer.Source(testSource, limitor)
+		t, err := transformer.NewSource(testSource, limitor)
 		Expect(err).To(BeNil())
 
 		p, err = pipe.Stage(t, blackhole.NewSink())
@@ -116,7 +116,7 @@ var _ = Describe("Transformer", func() {
 		}
 
 		sink := buffer.NewSink()
-		t, err := transformer.Source(testSource, mapper)
+		t, err := transformer.NewSource(testSource, mapper)
 		Expect(err).To(BeNil())
 
 		p, err = pipe.Stage(t, sink)

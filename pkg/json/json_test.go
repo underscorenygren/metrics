@@ -68,7 +68,7 @@ var _ = Describe("Json", func() {
 
 		testSource := programmatic.NewSource()
 
-		t, err := transformer.Source(testSource, fn)
+		t, err := transformer.NewSource(testSource, fn)
 
 		//Make pipe
 		p, err = pipe.Stage(t, sink)
@@ -119,7 +119,7 @@ var _ = Describe("Json", func() {
 
 		testSource := programmatic.NewSource()
 
-		t, err := transformer.Source(testSource, fn)
+		t, err := transformer.NewSource(testSource, fn)
 
 		//Make pipe
 		sink = buffer.NewSink()

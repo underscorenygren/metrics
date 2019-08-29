@@ -1,3 +1,9 @@
+/*
+Package stream provides a source that reads events from an io.Reader.
+
+bufio.Scanner is exposed, which can be used to configure stream parsing:
+https://golang.org/pkg/bufio/#Scanner
+*/
 package stream
 
 import (
@@ -7,28 +13,29 @@ import (
 	"io"
 )
 
-//Source reads events from a buffered stream
+/*
+Source implements the Source interface.
+
+Use the Scanner field to configure stream scanning.
+*/
 type Source struct {
-	//Scanner the underlying scanner object.
-	//Can be accessed to change stream reading semantics,
-	//e.g. not read by lines
 	Scanner *bufio.Scanner
 }
 
-//NewSource reads events from a file-like stream
+//NewSource creates a new stream Source that reads events from the supplied io.Reader.
 func NewSource(r io.Reader) *Source {
 	return &Source{
 		Scanner: bufio.NewScanner(r),
 	}
 }
 
-//Close closes the stream
+//Close closes this Source. Does not close the underlying stream.
 func (source *Source) Close() error {
 	//scanners don't need to be closed
 	return nil
 }
 
-//DrawOne reads one event from the stream
+//DrawOne reads one event from the stream.
 func (source *Source) DrawOne() (*types.Event, error) {
 	if ok := source.Scanner.Scan(); ok {
 		evt := types.NewEventFromBytes(source.Scanner.Bytes())

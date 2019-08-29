@@ -38,7 +38,7 @@ var _ = Describe("Http", func() {
 	}
 	testBytes := []byte("hello world")
 	ref := types.NewEventFromBytes(testBytes)
-	startupTime := 200 * time.Millisecond
+	startupTime := 50 * time.Millisecond
 
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 

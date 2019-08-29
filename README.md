@@ -30,18 +30,18 @@ Stands up a server and sends body of requests to it to AWS Firehose.
 package main
 
 import (
-	"github.com/underscorenygren/partaj/pkg/firehose"
-	"github.com/underscorenygren/partaj/pkg/http"
-	"os"
+  "github.com/underscorenygren/partaj/pkg/firehose"
+  "github.com/underscorenygren/partaj/pkg/http"
+  "os"
   "log"
 )
 
 func main() {
-	sink, _ := firehose.NewSink("name-of-my-firehose")
-	s, _ := http.NewServer(http.Config{
-		Sink: sink,
-	})
-	log.Fatal(s.ListenAndServe().Error())
+  sink, _ := firehose.NewSink("name-of-my-firehose")
+  s, _ := http.NewServer(http.Config{
+    Sink: sink,
+  })
+  log.Fatal(s.ListenAndServe().Error())
 }
 ```
 

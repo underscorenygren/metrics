@@ -1,3 +1,6 @@
+/*
+Package file reads events from a file.
+*/
 package file
 
 import (
@@ -6,13 +9,21 @@ import (
 	"os"
 )
 
-//Source reads events from an open file
+//Source fulfills the source interface. Reads events from a file.
 type Source struct {
 	stream *stream.Source
 	f      *os.File
 }
 
-//NewSource Creates a file source by openeing file at path
+/*
+NewSource creates a file Source by opening the file
+supplied at `path`.
+
+File is read using a `stream` Source, and assumes newlines for separators.
+In a future version, this will be configurable.
+
+Will return underlying opening error if file open fails.
+*/
 func NewSource(path string) (*Source, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -24,7 +35,7 @@ func NewSource(path string) (*Source, error) {
 	}, nil
 }
 
-//Close closes file source
+//Close closes the source and the file handle with it.
 func (source *Source) Close() error {
 	err := source.f.Close()
 	streamErr := source.stream.Close()
@@ -34,7 +45,7 @@ func (source *Source) Close() error {
 	return streamErr
 }
 
-//DrawOne reads one event
+//DrawOne reads one event from the underlying file.
 func (source *Source) DrawOne() (*types.Event, error) {
 	return source.stream.DrawOne()
 }

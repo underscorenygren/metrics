@@ -1,44 +1,47 @@
-package kinesis_test
+package firehose_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/firehose"
+	awsfirehose "github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/underscorenygren/partaj/internal/logging"
 	"github.com/underscorenygren/partaj/pkg/buffer"
 	"github.com/underscorenygren/partaj/pkg/failsink"
-	"github.com/underscorenygren/partaj/pkg/kinesis"
+	"github.com/underscorenygren/partaj/pkg/firehose"
 	"github.com/underscorenygren/partaj/pkg/pipe"
 	"github.com/underscorenygren/partaj/pkg/programmatic"
 	"github.com/underscorenygren/partaj/pkg/types"
 	"net/http"
 )
 
+//examples on how to use firehose
+func Example() {}
+
 func localStackRunning() bool {
-	resp, err := http.Get(kinesis.LocalEndpoint)
+	resp, err := http.Get(firehose.LocalEndpoint)
 	return err == nil && resp.StatusCode == http.StatusMethodNotAllowed
 }
 
-var _ = Describe("Kinesis", func() {
+var _ = Describe("Firehose", func() {
 
 	logger := logging.ConfigureDevelopment(GinkgoWriter)
 	streamName := "test"
-	var sink *kinesis.Firehose
+	var sink *firehose.Sink
 
 	BeforeEach(func() {
 		if !localStackRunning() {
 			logger.Debug("localstack not running")
 			Skip("localstack isn't running")
 		} else {
-			sink, _ = kinesis.Sink(kinesis.SinkConfig{
+			sink, _ = firehose.NewSink(firehose.Config{
 				Name:  streamName,
 				Local: true,
 			})
 
 			cli := sink.Client()
-			cli.CreateDeliveryStream(&firehose.CreateDeliveryStreamInput{
+			cli.CreateDeliveryStream(&awsfirehose.CreateDeliveryStreamInput{
 				DeliveryStreamName: aws.String(streamName),
 			})
 		}
@@ -47,18 +50,18 @@ var _ = Describe("Kinesis", func() {
 	AfterEach(func() {
 		if localStackRunning() {
 			sink.Client().DeleteDeliveryStream(
-				&firehose.DeleteDeliveryStreamInput{
+				&awsfirehose.DeleteDeliveryStreamInput{
 					DeliveryStreamName: aws.String(streamName),
 				})
 		}
 	})
 
-	It("pushes events to kinesis", func() {
+	It("pushes events to firehose", func() {
 
-		//setup kinesis pipeline
+		//setup pipeline
 		src := programmatic.NewSource()
-		buf := buffer.Sink()
-		withFailures, err := failsink.Sink(sink, buf)
+		buf := buffer.NewSink()
+		withFailures, err := failsink.NewSink(sink, buf)
 		Expect(err).To(BeNil())
 
 		p, err := pipe.Stage(src, withFailures)

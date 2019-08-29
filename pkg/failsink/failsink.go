@@ -1,3 +1,8 @@
+/*
+Package failsink is a sink that drains all events arriving to
+it into it's primary sink, and re-drains all failed events into
+the secondary sink.
+*/
 package failsink
 
 import (
@@ -7,13 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-type failsink struct {
+//Sink implements the Sink interface.
+type Sink struct {
 	sink types.Sink
 	fail types.Sink
 }
 
-//Sink creates new failsink, which sends failed events to secondary sink
-func Sink(sink types.Sink, fail types.Sink) (types.Sink, error) {
+/*
+NewSink creates a Sink which attempts to drain all
+events to the primary "sink" Sink, and re-drains
+failed events to secondary "fail" sink.
+
+Will fail if either sinks provided are nil.
+*/
+func NewSink(sink types.Sink, fail types.Sink) (*Sink, error) {
 	if sink == nil {
 		return nil, fmt.Errorf("sink cannot be nil")
 	}
@@ -22,14 +34,14 @@ func Sink(sink types.Sink, fail types.Sink) (types.Sink, error) {
 		return nil, fmt.Errorf("failure sink cannot be nil")
 	}
 
-	return &failsink{
+	return &Sink{
 		sink: sink,
 		fail: fail,
 	}, nil
 }
 
-//Drain sends failed events to a secondary sink
-func (fs *failsink) Drain(events []types.Event) []error {
+//Drain sends failed events to the configured "fail" sink.
+func (fs *Sink) Drain(events []types.Event) []error {
 
 	logger := logging.Logger()
 

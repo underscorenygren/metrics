@@ -1,4 +1,7 @@
-package kinesis
+/*
+Package firehose provides a sink that sends events to an AWS Firehose.
+*/
+package firehose
 
 import (
 	"fmt"
@@ -7,37 +10,31 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/underscorenygren/partaj/internal/logging"
+	"github.com/underscorenygren/partaj/pkg/errors"
 	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 	"os"
 )
 
 const (
-	//MaxSize max records for a kinesis put
-	MaxSize = 500
-	//LocalEndpoint address of firehose in localstack
+	//LocalEndpoint is the address of the firehose service when using localstack for testing.
 	LocalEndpoint = "http://localhost:4573"
 )
 
-//ErrPutFailure error when all records fail to put, such as for IAM errors
-var ErrPutFailure = fmt.Errorf("ErrPutFailure")
-
-//Firehose Sink for pushing to firehose
-type Firehose struct {
-	Name     string
+//Sink implements Sink interface for pushing events to a Firehose.
+type Sink struct {
+	Name     string //the name of the firehose
 	firehose *firehose.Firehose
 }
 
-//SinkConfig for constructing Fireshose Sink
-type SinkConfig struct {
-	//Name name of firehose on aws
-	Name string
-	//Local points to local testing endpoint using localstack
-	Local bool
+//Config is the input arguments to NewSink.
+type Config struct {
+	Name  string //name of the firehose as defined by AWS.
+	Local bool   //when set to true, will configure firehose client to make requests to the local endpoint.
 }
 
-//Sink constructs a firehose sink
-func Sink(cfg SinkConfig) (*Firehose, error) {
+//NewSink constructs a firehose Sink.
+func NewSink(cfg Config) (*Sink, error) {
 
 	if cfg.Name == "" {
 		return nil, fmt.Errorf("No name provided")
@@ -52,19 +49,20 @@ func Sink(cfg SinkConfig) (*Firehose, error) {
 	}
 	firehose := firehose.New(session.New(), awsCfg)
 
-	return &Firehose{
+	return &Sink{
 		Name:     cfg.Name,
 		firehose: firehose,
 	}, nil
 }
 
-//Client access the underlying aws Firehose client
-func (fh *Firehose) Client() *firehose.Firehose {
+//Client returns the underlying AWS Firehose Client
+func (fh *Sink) Client() *firehose.Firehose {
 	return fh.firehose
 }
 
-//Drain sends events to kinesis firehose
-func (fh *Firehose) Drain(events []types.Event) []error {
+//Drain sends the supplied events to the firehose using
+//PutRecordBatch.
+func (fh *Sink) Drain(events []types.Event) []error {
 	firehoseRecords := []*firehose.Record{}
 	errs := []error{}
 	logger := logging.Logger()
@@ -75,7 +73,7 @@ func (fh *Firehose) Drain(events []types.Event) []error {
 	}
 
 	//put batch to firehose
-	logger.Debug("kinesis.Drain: putting batch",
+	logger.Debug("firehose.Drain: putting batch",
 		zap.Int("n", len(firehoseRecords)),
 		zap.String("name", fh.Name),
 	)
@@ -83,12 +81,13 @@ func (fh *Firehose) Drain(events []types.Event) []error {
 		DeliveryStreamName: aws.String(fh.Name),
 		Records:            firehoseRecords,
 	})
-	logger.Debug("kinesis.Drain: finished batch")
+	logger.Debug("firehose.Drain: finished batch")
+
 	//Put error means all failed (permission error or whatnot)
 	if err != nil {
-		logger.Debug("kinesis.Drain: put error", zap.Error(err))
+		logger.Debug("firehose.Drain: put error", zap.Error(err))
 		for range firehoseRecords {
-			errs = append(errs, ErrPutFailure)
+			errs = append(errs, errors.ErrPutFailure)
 		}
 		return errs
 	}
@@ -97,19 +96,19 @@ func (fh *Firehose) Drain(events []types.Event) []error {
 	nFailed := res.FailedPutCount
 	failure := nFailed != nil && *nFailed > 0
 	if failure {
-		logger.Debug("kinesis.Drain: failed some records", zap.Int64("n", *nFailed))
+		logger.Debug("firehose.Drain: failed some records", zap.Int64("n", *nFailed))
 		for index, resp := range res.RequestResponses {
 			code := *resp.ErrorCode
 			msg := *resp.ErrorMessage
 			if resp.ErrorCode != nil {
-				logger.Debug("kinesis.Drain: record error",
+				logger.Debug("firehose.Drain: record error",
 					zap.Int("index", index),
 					zap.String("code", code),
 					zap.String("msg", msg),
 					zap.String("recordId", *resp.RecordId))
 				errs = append(errs, fmt.Errorf("[%s]:%s", code, msg))
 			} else {
-				logger.Debug("kinesis.Drain: record succeeded",
+				logger.Debug("firehose.Drain: record succeeded",
 					zap.Int("index", index))
 				errs = append(errs, nil)
 			}
@@ -121,7 +120,7 @@ func (fh *Firehose) Drain(events []types.Event) []error {
 	return nil
 }
 
-//toRecord creates a kinesis firehose record from bytes
+//toRecord creates a firehose firehose record from bytes
 func toRecord(bytes []byte) *firehose.Record {
 	return &firehose.Record{Data: bytes}
 }

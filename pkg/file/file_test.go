@@ -16,6 +16,9 @@ import (
 	"strings"
 )
 
+//Used to display test code in godoc
+func Example() {}
+
 var _ = Describe("File", func() {
 
 	logging.ConfigureDevelopment(GinkgoWriter)
@@ -35,7 +38,7 @@ var _ = Describe("File", func() {
 
 		refEvents := internal.StringsToEvents(ref)
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 
@@ -60,7 +63,7 @@ var _ = Describe("File", func() {
 
 		refEvents := internal.StringsToEvents([]string{"one"})
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 
@@ -80,7 +83,7 @@ var _ = Describe("File", func() {
 
 		refEvents := []types.Event{}
 
-		buf := buffer.Sink()
+		buf := buffer.NewSink()
 		source, err := file.NewSource(tmp.Name())
 		Expect(err).To(BeNil())
 

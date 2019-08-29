@@ -1,55 +1,71 @@
+/*
+Package types contains generic types and interfaces for partaj.
+*/
 package types
 
-import "context"
+/*
+Event represents a single event in the system.
 
-//Event a single event in the system. Passed around as a typed
-//object instead of a native type to make additions to class easier.
+Declared as a type to make function signatures generic, and
+so that future additions and changes can be made more easily.
+*/
 type Event struct {
-	//the raw bytes of the event, unprocessed
-	bytes []byte
-	//stores context for event
-	ctx *context.Context
+	bytes []byte //the raw bytes of the event
 }
 
-//Sink A generic class for capturing all implementations
-// where events end up and are processed.
-// Specific implementations of the Sink interface provide
-// functionality for different "backends", such as sending events
-// to storage, logging, etc.
+/*
+Sink defines an interface for where events end up.
+*/
 type Sink interface {
-	//Processes a sequence of events.
-	//If any events fail, returns a slice where the index of the failure corresponds to the original event.
-	//If there are no failures, returns nil
+	/*
+		Drain processes a sequence of events.
+
+		If there are any failures, must return a slice of errors, where
+		the index of the failed event corresponds with it's index in the error array.
+
+		If there are no errors, returns nil
+	*/
 	Drain([]Event) []error
 }
 
-//Source source
+/*
+Source defines an interface for where events originate.
+*/
 type Source interface {
+	/*
+		DrawOne draws a single event from the source.
+
+		Expected to block until an event is available, or an error occurs.
+
+		Can return nil events, which should be ignored if there are no errors.
+	*/
 	DrawOne() (*Event, error)
+	/* Close closes a source and any of it's associated resources */
 	Close() error
 }
 
-//Stage stage
+/*
+Stage defines a connection of sources and sinks.
+*/
 type Stage interface {
+	/*
+		Flow pumps events through the stage continuously by calling
+		Draw and Drain methods, until they return an error.
+	*/
 	Flow() error
 }
 
-//NewEventFromBytes creates an event object from a set of bytes
+//NewEventFromBytes is a convenience method for creating an Event from a set of bytes.
 func NewEventFromBytes(bytes []byte) Event {
 	return Event{bytes: bytes}
 }
 
-//Bytes returns the bytes of the event
+//Bytes returns the underlying bytes.
 func (evt *Event) Bytes() []byte {
 	return evt.bytes
 }
 
-//Context gets the event context
-func (evt *Event) Context() *context.Context {
-	return evt.ctx
-}
-
-//NewBytes creates a copy of the event with the new bytes
+//NewBytes creates a copy of the event with the new bytes.
 func (evt *Event) NewBytes(bytes []byte) *Event {
 	cpy := Event(*evt)
 	cpy.bytes = bytes

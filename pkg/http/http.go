@@ -1,3 +1,7 @@
+/*
+Package http provides a webserver that converts requests into events,
+as well as some minimal routing of events to different event processing pipelines.
+*/
 package http
 
 import (
@@ -16,39 +20,86 @@ import (
 )
 
 const (
-	//DefaultHost 0.0.0.0
+	//DefaultHost listens on all interfaces
 	DefaultHost = "0.0.0.0"
-	//DefaultPort port 80
+	//DefaultPort listens on web port
 	DefaultPort = 80
-	//DefaultReadHeaderTimeout 1 second
+	//DefaultReadHeaderTimeout is 1 second
 	DefaultReadHeaderTimeout = 1 * time.Second
-	//DefaultReadTimeout 2 seconds
+	//DefaultReadTimeout is 2 seconds
 	DefaultReadTimeout = 2 * time.Second
-	//DefaultWriteTimeout 4 seconds
+	//DefaultWriteTimeout is 4 seconds
 	DefaultWriteTimeout = 4 * time.Second
-	//DefaultSuccessCode code to write on success
+	//DefaultSuccessCode writes 201 on success
 	DefaultSuccessCode = http.StatusNoContent
 )
 
-//EventMakerFn function signature for making an event from a request
-//body is read ahead of time, so provided as an arg and not available as req.Body
+/*
+EventMakerFn is the function signature for making an event from a request.
+
+body is provided as an argument, it's read in-advance from the http.Request.Body.
+As such, attempts to read req.Body will always return "" and should not be used.
+*/
 type EventMakerFn func(body []byte, req *http.Request) (*types.Event, error)
 
-//SuccessWriterFn function signature for wirting success responses
+//SuccessWriterFn is the function signature for writing a successful response.
 type SuccessWriterFn func(w http.ResponseWriter)
 
-//defaultEventMaker writes body as event
-func defaultEventMaker(body []byte, req *http.Request) (*types.Event, error) {
+//DefaultEventMaker implements EventMakerFn type,  writes request body bytes as the event bytes.
+func DefaultEventMaker(body []byte, req *http.Request) (*types.Event, error) {
 	evt := types.NewEventFromBytes(body)
 	return &evt, nil
 }
 
-//default success function writes no content response code
-func defaultSuccessFn(w http.ResponseWriter) {
+//DefaultSuccessFn implements SuccessWriterFn type, writes the default response code and no content.
+func DefaultSuccessFn(w http.ResponseWriter) {
 	w.WriteHeader(DefaultSuccessCode)
 }
 
-//eventServer inner class used to register ServeHTTP
+/*
+Server accepts web request and turns them into events.
+
+Call ListenAndServe like a regular net/http server to start it.
+
+	server, _ := NewServer(Config{})
+	log.Fatal(server.ListenAndServe())
+
+*/
+type Server struct {
+	eventServer *eventServer
+	httpServer  *http.Server
+	Router      *mux.Router //allows access to the gorilla/mux Router
+}
+
+/*
+Config is the input arguments to NewServer.
+
+All fields are optional, and will be filled in with their
+corresponding default.
+
+If no Sink is provided, at least one Sink must be added
+using MakeHandleFunc for the server to run correctly (see below for example).
+
+If a Sink is provided, it will be registered as a catch-all sink, that receives
+all events not covered by other routes registered by MakeHandleFunc.
+*/
+type Config struct {
+	Port              *int            //listen on port
+	Host              *string         //listen on host interface
+	ReadHeaderTimeout *time.Duration  //passed to net/http
+	ReadTimeout       *time.Duration  //passed to net/http
+	WriteTimeout      *time.Duration  //passed to net/http
+	EventMaker        EventMakerFn    //How to make events from requests
+	SuccessWriter     SuccessWriterFn //what to write on event success
+	Sink              types.Sink      //sink to handle received events
+}
+
+/*
+eventServer internal class for handling the events internally.
+
+Extrapolated away from actual http handling, which is covered
+by the http module
+*/
 type eventServer struct {
 	EventMaker    EventMakerFn
 	SuccessWriter SuccessWriterFn
@@ -56,37 +107,15 @@ type eventServer struct {
 	sources       []types.Source
 }
 
-//Server accepts events over HTTP
-//Can be configured to route requests to different sinks, will
-//ship all to default sink unless configured otherwise
-type Server struct {
-	eventServer *eventServer
-	httpServer  *http.Server
-	Router      *mux.Router
-}
-
-//Config server configuration
-type Config struct {
-	Port              *int
-	Host              *string
-	ReadHeaderTimeout *time.Duration
-	ReadTimeout       *time.Duration
-	WriteTimeout      *time.Duration
-	EventMaker        EventMakerFn
-	SuccessWriter     SuccessWriterFn
-	Sink              types.Sink
-	Router            *mux.Router
-}
-
-//NewServer makes a new server instance
+//NewServer makes a new server from the config.
 func NewServer(cfg Config) (*Server, error) {
 	host := DefaultHost
 	port := DefaultPort
 	readHeaderTimeout := DefaultReadHeaderTimeout
 	readTimeout := DefaultReadTimeout
 	writeTimeout := DefaultWriteTimeout
-	eventMaker := defaultEventMaker
-	successWriter := defaultSuccessFn
+	eventMaker := DefaultEventMaker
+	successWriter := DefaultSuccessFn
 	router := mux.NewRouter()
 
 	if cfg.Host != nil {
@@ -140,8 +169,13 @@ func NewServer(cfg Config) (*Server, error) {
 	}, nil
 }
 
-//ListenAndServe starts server listening on vents
-//returns error if http server or event processor fails
+/*
+ListenAndServe starts the Server and starts accepting incoming requests
+accordinging to the supplied configuration.
+
+Will run indefintely, and returns an error if underlying server fails or event processing
+pipeline processing fails.
+*/
 func (srv *Server) ListenAndServe() error {
 	errChan := make(chan error)
 	logger := logging.Logger()
@@ -167,13 +201,19 @@ func (srv *Server) ListenAndServe() error {
 	return <-errChan
 }
 
-//MakeHandleFunc Used to configure routing. Provide as argument to
-//mux.HandleFunc by accessing the underlying router
+/*
+MakeHandleFunc is used to create a function usable with the http.Handler interface, that
+sends events to the specified sink.
+
+Used with the server Router to route events to different sink:
+	server.Router.HandleFunc("/some-path", server.MakeHandleFunc(someSink))
+*/
 func (srv *Server) MakeHandleFunc(sink types.Sink) func(w http.ResponseWriter, req *http.Request) {
 	return srv.eventServer.makeHandleFunc(sink)
 }
 
-//Shutdown stops the server
+//Shutdown stops the server gracefully.
+//See http.Shutdown for context usage.
 func (srv *Server) Shutdown(ctx context.Context) {
 	logger := logging.Logger()
 	logger.Debug("http.Shutdown starting")
@@ -186,8 +226,10 @@ func (srv *Server) Shutdown(ctx context.Context) {
 	logger.Debug("http.Shutdown finished")
 }
 
-//internally, all handlefunc logic is done on eventServer
-//Adds a sink and routes request to it using programmatic sink
+/*
+makeHandleFunc is the internal handling for adding a sink to the
+eventServer. Uses a programmatic source to put events to the sink.
+*/
 func (s *eventServer) makeHandleFunc(sink types.Sink) func(w http.ResponseWriter, req *http.Request) {
 
 	src := s.addSink(sink)

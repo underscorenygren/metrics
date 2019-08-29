@@ -1,4 +1,4 @@
-package kinesis_test
+package firehose_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestKinesis(t *testing.T) {
+func TestFirehose(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Kinesis Suite")
+	RunSpecs(t, "Firehose Suite")
 }

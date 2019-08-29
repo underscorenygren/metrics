@@ -16,14 +16,18 @@ import (
 	"go.uber.org/zap"
 )
 
-//failSink fails after certain number of events
+//Example is just used to show the specs in godoc
+func Example() {}
+
+//failSink is a dummy sink that starts returning errors
+//after a certain number of events have been received.
 type failSink struct {
 	received  int
 	failAfter int
 	logger    *zap.Logger
 }
 
-//implements Sink interface
+//Drain implements the Sink interface
 func (fail *failSink) Drain(events []types.Event) []error {
 	errs := []error{}
 	failures := false
@@ -56,7 +60,7 @@ var _ = Describe("Failsink", func() {
 
 	BeforeEach(func() {
 		testSource = programmatic.NewSource()
-		p, err = pipe.Stage(testSource, blackhole.Sink())
+		p, err = pipe.Stage(testSource, blackhole.NewSink())
 		Expect(err).To(BeNil())
 
 		for i := 0; i < nEvents; i++ {
@@ -71,8 +75,8 @@ var _ = Describe("Failsink", func() {
 			types.NewEventFromBytes(eventBytes)}
 
 		//track failures in buffer
-		failed := buffer.Sink()
-		fs, err := failsink.Sink(failer, failed)
+		failed := buffer.NewSink()
+		fs, err := failsink.NewSink(failer, failed)
 		Expect(err).To(BeNil())
 		p, err = pipe.Stage(testSource, fs)
 		Expect(err).To(BeNil())

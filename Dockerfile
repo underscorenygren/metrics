@@ -2,8 +2,8 @@ from golang:latest
 
 ENV GO111MODULE "on"
 
-RUN mkdir -p /go/src/github.com/underscorenygren/metrics/
-WORKDIR /go/src/github.com/underscorenygren/metrics/
+RUN mkdir -p /go/src/github.com/underscorenygren/partaj/
+WORKDIR /go/src/github.com/underscorenygren/partaj/
 
 #copy go mod files first
 COPY go.mod .

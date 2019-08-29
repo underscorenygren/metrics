@@ -1,4 +1,4 @@
-.PHONY: build help test ls
+.PHONY: build help test ls docs
 RUNNER_DIR := examples
 
 ## Makefile self-documentation
@@ -81,3 +81,10 @@ ls:  ## lists available build/run targets
 
 test:  ## runs specs
 	@ginkgo -r ./...
+
+docs:  ## generates documentation
+	docker build -f docs.Dockerfile -t partaj-docs .
+	docker run --rm -it -p 6060:6060 partaj-docs
+
+open-docs:
+	open http://localhost:6060/pkg/github.com/underscorenygren/partaj/

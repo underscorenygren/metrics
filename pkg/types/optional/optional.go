@@ -1,11 +1,16 @@
+/*
+Package optional is container for optional types.
+
+Used to supply optional configuration more elegantly.
+*/
 package optional
 
-//String optional string
+//String is an optional string.
 func String(str string) *string {
 	return &str
 }
 
-//Int optional int
+//Int is an optional int.
 func Int(i int) *int {
 	return &i
 }

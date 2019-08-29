@@ -1,3 +1,7 @@
+/*
+Package transformer is a source that applies a transformation function to events
+passing through it.
+*/
 package transformer
 
 import (
@@ -7,17 +11,23 @@ import (
 	"go.uber.org/zap"
 )
 
-type transformer struct {
+//Source fulfills the Source interface. Events read from
+//this source are transformed with the supplied MapperFn.
+type Source struct {
 	source   types.Source
 	mapperFn MapperFn
 }
 
-//MapperFn fn signature for transforming one event
+/*
+MapperFn is the function signature for transforming a single event.
+
+Errors returned by the mapper function will be returned in calls to Draw.
+*/
 type MapperFn func(*types.Event) (*types.Event, error)
 
-//Source makes a new transformer, that applies a transformation
-//function on events drawn from the source
-func Source(source types.Source, mapperFn MapperFn) (types.Source, error) {
+//NewSource makes a new transformer Source, that applies a transformation
+//function on events drawn from the supplied source.
+func NewSource(source types.Source, mapperFn MapperFn) (*Source, error) {
 	if source == nil {
 		return nil, fmt.Errorf("source cannot be nil")
 	}
@@ -25,14 +35,14 @@ func Source(source types.Source, mapperFn MapperFn) (types.Source, error) {
 		return nil, fmt.Errorf("transformer fn cannot be nil")
 	}
 
-	return &transformer{
+	return &Source{
 		source:   source,
 		mapperFn: mapperFn,
 	}, nil
 }
 
-//DrawOne draws one event from the underlying source and transforms it
-func (t *transformer) DrawOne() (*types.Event, error) {
+//DrawOne draws one event from the underlying source and transforms it.
+func (t *Source) DrawOne() (*types.Event, error) {
 
 	logger := logging.Logger()
 	e, err := t.source.DrawOne()
@@ -56,7 +66,7 @@ func (t *transformer) DrawOne() (*types.Event, error) {
 	return e, nil
 }
 
-//Close closing transformer closes it's containing source
-func (t *transformer) Close() error {
+//Close closes the transformer and it's underlying source.
+func (t *Source) Close() error {
 	return t.source.Close()
 }

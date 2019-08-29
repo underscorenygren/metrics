@@ -1,5 +1,5 @@
 /*
-Package optional is an optional type.
+Package optional is container for optional types.
 
 Used to supply optional configuration more elegantly.
 */

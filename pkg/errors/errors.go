@@ -18,3 +18,6 @@ var ErrStreamEnd = fmt.Errorf("StreamEnd")
 
 //ErrPutFailure is returned when firehose Sink fails to put all events, e.g. for IAM errors.
 var ErrPutFailure = fmt.Errorf("ErrPutFailure")
+
+//ErrCloudwatchEnd is returned when no more entries are available from cloudwatch source
+var ErrCloudwatchEnd = fmt.Errorf("ErrCloudwatchEnd")

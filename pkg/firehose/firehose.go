@@ -6,14 +6,13 @@ package firehose
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/firehose"
+	"github.com/underscorenygren/partaj/internal/awsutil"
 	"github.com/underscorenygren/partaj/internal/logging"
 	"github.com/underscorenygren/partaj/pkg/errors"
 	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
-	"os"
 )
 
 const (
@@ -39,14 +38,11 @@ func NewSink(cfg Config) (*Sink, error) {
 	if cfg.Name == "" {
 		return nil, fmt.Errorf("No name provided")
 	}
-	region := os.Getenv("AWS_DEFAULT_REGION")
-	if region == "" {
-		region = endpoints.UsEast1RegionID
-	}
-	awsCfg := aws.NewConfig().WithRegion(region)
+	endpoint := ""
 	if cfg.Local {
-		awsCfg.Endpoint = aws.String(LocalEndpoint)
+		endpoint = LocalEndpoint
 	}
+	awsCfg := awsutil.GetDefaultConfig(endpoint)
 	firehose := firehose.New(session.New(), awsCfg)
 
 	return &Sink{

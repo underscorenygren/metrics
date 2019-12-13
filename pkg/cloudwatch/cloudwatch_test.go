@@ -5,12 +5,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/services/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/underscorenygren/partaj/internal/logging"
-	"github.com/underscorenygren/partaj/pkg/buffer"
 	"github.com/underscorenygren/partaj/pkg/cloudwatch"
-	"github.com/underscorenygren/partaj/pkg/failsink"
-	"github.com/underscorenygren/partaj/pkg/pipe"
 	"github.com/underscorenygren/partaj/pkg/types"
 	"net/http"
 )
@@ -20,7 +17,7 @@ func Example() {}
 
 func localStackRunning() bool {
 	resp, err := http.Get(cloudwatch.LocalEndpoint)
-	return err == nil && resp.StatusCode == http.StatusMethodNotAllowed
+	return err == nil && resp.StatusCode == http.StatusNotFound
 }
 
 var _ = Describe("Cloudwatch", func() {
@@ -29,6 +26,9 @@ var _ = Describe("Cloudwatch", func() {
 
 	logGroupName := "test-log-group"
 	logStreamName := "test-stream"
+	nEvents := int64(3)
+	//We would like to set limit to n-1 to test refresh, but it breaks localstack so we'll have to wait on it
+	//limit := nEvents - 1
 
 	var sink *cloudwatch.Sink
 	var source *cloudwatch.Source
@@ -40,6 +40,7 @@ var _ = Describe("Cloudwatch", func() {
 		} else {
 			var err error
 
+			logger.Debug("creating sink")
 			sink, err = cloudwatch.NewSink(cloudwatch.SinkConfig{
 				LogGroupName:  logGroupName,
 				LogStreamName: logStreamName,
@@ -48,20 +49,24 @@ var _ = Describe("Cloudwatch", func() {
 
 			Expect(err).To(BeNil())
 
+			logger.Debug("creating source")
 			source, err = cloudwatch.NewSource(cloudwatch.SourceConfig{
 				LogGroupName:  logGroupName,
 				LogStreamName: logStreamName,
+				Limit:         nil,
 				Local:         true,
 			})
 
 			client := source.Client()
 
-			_, err = client.CreateLogGroup(cloudwatchlogs.CreateLogGroupInput{
-				LogGroupName: logGroupName,
+			logger.Debug("creating log group")
+			_, err = client.CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
+				LogGroupName: aws.String(logGroupName),
 			})
 			Expect(err).To(BeNil())
 
-			_, err = client.CreateLogStream(cloudwatchlogs.CreateLogStreamInput{
+			logger.Debug("creating log stream")
+			_, err = client.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 				LogGroupName:  aws.String(logGroupName),
 				LogStreamName: aws.String(logStreamName),
 			})
@@ -74,38 +79,57 @@ var _ = Describe("Cloudwatch", func() {
 			var err error
 			client := source.Client()
 
-			err = client.DeleteLogStream(cloudwatchlogs.DeleteLogStreamInput{
+			_, err = client.DeleteLogStream(&cloudwatchlogs.DeleteLogStreamInput{
 				LogGroupName:  aws.String(logGroupName),
 				LogStreamName: aws.String(logStreamName),
 			})
 			Expect(err).To(BeNil())
 
-			err = client.DeleteLogGroup(cloudwatchlogs.DeleteLogGroupInput{
+			_, err = client.DeleteLogGroup(&cloudwatchlogs.DeleteLogGroupInput{
 				LogGroupName: aws.String(logGroupName),
 			})
 			Expect(err).To(BeNil())
 		}
 	})
 
-	It("pushes pushes and reads events to local cloudwatch", func() {
+	It("reads and writes to cloudwatch", func() {
+		one := types.NewEventFromBytes([]byte("one"))
+		two := types.NewEventFromBytes([]byte("two"))
+		three := types.NewEventFromBytes([]byte("three"))
 
+		logger.Debug("testing local cloudwatch")
 		//setup pipeline
 
-		buf := buffer.NewSink()
-		withFailures, err := failsink.NewSink(sink, buf)
+		events := []types.Event{
+			one,
+			two,
+			three,
+		}
+		//not strictly necessary, but checked to make sure adding events don't break test assumptions
+		Expect(len(events)).To(Equal(int(nEvents)))
+
+		errs := sink.Drain(events)
+
+		Expect(errs).To(BeNil())
+
+		evt, err := source.DrawOne()
 		Expect(err).To(BeNil())
+		Expect(evt).ToNot(BeNil())
 
-		p, err := pipe.Stage(source, withFailures)
+		Expect(evt.IsEqual(&one)).To(BeTrue())
+
+		evt, err = source.DrawOne()
 		Expect(err).To(BeNil())
+		Expect(evt).ToNot(BeNil())
+		Expect(evt.IsEqual(&two)).To(BeTrue())
 
-		//Run the pipeline
-		errs := source.Drain([]events{
-			types.EventFromBytes([]byte("one")),
-			types.EventFromBytes([]byte("two")),
-		})
-		p.Flow()
+		evt, err = source.DrawOne()
+		Expect(err).To(BeNil())
+		Expect(evt).ToNot(BeNil())
+		Expect(evt.IsEqual(&three)).To(BeTrue())
 
-		//Nothing should have failed
-		Expect(buf.Events).To(Equal([]types.Event{}))
+		//it will restart without "limit", which is currently broken in localstack
+		//evt, err = source.DrawOne()
+		//Expect(err).ToNot(BeNil())
 	})
 })

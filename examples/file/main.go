@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	p, err := pipe.Stage(src, sink)
+	p, err := pipe.NewStage(src, sink)
 	err = p.Flow()
 
 	if err != errors.ErrStreamEnd {

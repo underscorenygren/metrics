@@ -64,7 +64,7 @@ var _ = Describe("Firehose", func() {
 		withFailures, err := failsink.NewSink(sink, buf)
 		Expect(err).To(BeNil())
 
-		p, err := pipe.Stage(src, withFailures)
+		p, err := pipe.NewStage(src, withFailures)
 		Expect(err).To(BeNil())
 
 		//Run the pipeline

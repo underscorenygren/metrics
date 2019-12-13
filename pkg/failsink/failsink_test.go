@@ -60,7 +60,7 @@ var _ = Describe("Failsink", func() {
 
 	BeforeEach(func() {
 		testSource = programmatic.NewSource()
-		p, err = pipe.Stage(testSource, blackhole.NewSink())
+		p, err = pipe.NewStage(testSource, blackhole.NewSink())
 		Expect(err).To(BeNil())
 
 		for i := 0; i < nEvents; i++ {
@@ -78,7 +78,7 @@ var _ = Describe("Failsink", func() {
 		failed := buffer.NewSink()
 		fs, err := failsink.NewSink(failer, failed)
 		Expect(err).To(BeNil())
-		p, err = pipe.Stage(testSource, fs)
+		p, err = pipe.NewStage(testSource, fs)
 		Expect(err).To(BeNil())
 
 		//run pipe

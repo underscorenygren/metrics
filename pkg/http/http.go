@@ -278,7 +278,7 @@ func (s *eventServer) handleError(err error, w http.ResponseWriter) {
 //adds sink into internal structure and creates corresponding source
 func (s *eventServer) addSink(sink types.Sink) *programmatic.Source {
 	src := programmatic.NewSource()
-	stage, err := pipe.Stage(src, sink)
+	stage, err := pipe.NewStage(src, sink)
 	if err != nil {
 		logging.Logger().Fatal("couldn't create stage", zap.Error(err))
 	}

@@ -17,8 +17,8 @@ type Pipe struct {
 	sink   types.Sink
 }
 
-//Stage creates a Pipe that connects a source with a sink.
-func Stage(source types.Source, sink types.Sink) (*Pipe, error) {
+//NewStage creates a Pipe that connects a source with a sink.
+func NewStage(source types.Source, sink types.Sink) (*Pipe, error) {
 	if source == nil {
 		return nil, fmt.Errorf("source cannot be nil")
 	}

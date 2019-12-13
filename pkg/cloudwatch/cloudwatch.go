@@ -6,14 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/underscorenygren/partaj/internal/awsutil"
+	"github.com/underscorenygren/partaj/internal/logging"
 	"github.com/underscorenygren/partaj/internal/timeutil"
 	"github.com/underscorenygren/partaj/pkg/errors"
 	"github.com/underscorenygren/partaj/pkg/types"
+	"go.uber.org/zap"
 )
 
 const (
 	//LocalEndpoint is the address of the cloudwatch service when using localstack for testing.
-	LocalEndpoint = "http://localhost:4582"
+	LocalEndpoint = "http://localhost:4586"
 )
 
 //Source implements Source interface for cloudwatch logs
@@ -36,6 +38,8 @@ type Sink struct {
 type SourceConfig struct {
 	LogGroupName  string
 	LogStreamName string
+	Limit         *int64
+	StartTime     *int64
 	Local         bool //when set to true, will configure client to make requests to the local endpoint.
 }
 
@@ -48,33 +52,38 @@ type SinkConfig struct {
 
 // ** Constructors ** //
 
+//NewClient makes a cloudwatchlogs client with aws sdk
+func NewClient(local bool) *cloudwatchlogs.CloudWatchLogs {
+	endpoint := ""
+	if local {
+		endpoint = LocalEndpoint
+	}
+	awsCfg := awsutil.GetDefaultConfig(endpoint)
+
+	return cloudwatchlogs.New(session.New(), awsCfg)
+}
+
 //NewSource constructs a cloudwatch Source
 func NewSource(cfg SourceConfig) (*Source, error) {
 	if cfg.LogGroupName == "" {
 		return nil, fmt.Errorf("No log group name provided")
 	}
-	if cfg.LogGroupName == "" {
+	if cfg.LogStreamName == "" {
 		return nil, fmt.Errorf("No log stream name provided")
 	}
 
-	endpoint := ""
-	if cfg.Local {
-		endpoint = LocalEndpoint
-	}
-	awsCfg := awsutil.GetDefaultConfig(endpoint)
-
-	client := cloudwatchlogs.New(session.New(), awsCfg)
+	client := NewClient(cfg.Local)
 
 	return &Source{
 		cloudwatchlogs: client,
 		initial:        true,
 		GetLogEventsInput: cloudwatchlogs.GetLogEventsInput{
 			EndTime:       nil,
-			Limit:         nil,
+			Limit:         cfg.Limit,
 			LogGroupName:  aws.String(cfg.LogGroupName),
 			LogStreamName: aws.String(cfg.LogStreamName),
 			StartFromHead: aws.Bool(true),
-			StartTime:     nil,
+			StartTime:     cfg.StartTime,
 		},
 	}, nil
 }
@@ -106,6 +115,7 @@ func NewSink(cfg SinkConfig) (*Sink, error) {
 //calls internal cloudwatch logs api to buffer log events
 func (source *Source) fetchFromClient() error {
 	//super obnoxious there's not a "clone" on this command
+	logger := logging.Logger()
 	input := cloudwatchlogs.GetLogEventsInput{}
 	input.EndTime = source.GetLogEventsInput.EndTime
 	input.Limit = source.GetLogEventsInput.Limit
@@ -115,17 +125,24 @@ func (source *Source) fetchFromClient() error {
 	input.LogStreamName = source.GetLogEventsInput.LogStreamName
 
 	if source.initial {
+		logger.Debug("cloudwatch.fetchFromClient: initial fetch")
 		source.initial = false
 	} else {
 		input.NextToken = source.nextToken
+		logger.Debug("cloudwatch.fetchFromClient: nextToken", zap.Stringp("nextToken", source.nextToken))
 	}
 
 	output, err := source.cloudwatchlogs.GetLogEvents(&input)
 	if err != nil {
+		logger.Debug("cloudwatch.fetchFromClient: get events failed", zap.Error(err))
 		return err
 	}
 	source.nextToken = output.NextForwardToken
 	source.bufferedEvents = output.Events
+
+	logger.Debug("cloudwatch.fetchFromClient: tokens",
+		zap.Stringp("NextForwardToken", output.NextForwardToken),
+		zap.Stringp("NextBackwardToken", output.NextBackwardToken))
 
 	return nil
 }
@@ -134,6 +151,7 @@ func (source *Source) fetchFromClient() error {
 func (source *Source) advance() *cloudwatchlogs.OutputLogEvent {
 	evt := source.bufferedEvents[0]
 	source.bufferedEvents = source.bufferedEvents[1:]
+	logging.Logger().Debug("cloudwatch.advance: advanced", zap.Int("inBuffer", len(source.bufferedEvents)))
 	return evt
 }
 
@@ -143,13 +161,17 @@ func (source *Source) hasBufferedEvents() bool {
 
 //DrawOne draws one event from the source
 func (source *Source) DrawOne() (*types.Event, error) {
-	if source.hasBufferedEvents() {
+	logger := logging.Logger()
+
+	if !source.hasBufferedEvents() {
 		if err := source.fetchFromClient(); err != nil {
 			return nil, err
 		}
+		logger.Debug("cloudwatch.DrawOne: fetched successfully")
 	}
 
 	if !source.hasBufferedEvents() {
+		logger.Debug("cloudwatch.DrawOne: no buffered events after fetch")
 		return nil, errors.ErrCloudwatchEnd
 	}
 
@@ -173,7 +195,10 @@ func (source *Source) Client() *cloudwatchlogs.CloudWatchLogs {
 //Drain sends events to sink
 func (sink *Sink) Drain(events []types.Event) []error {
 	inputLogEvents := []*cloudwatchlogs.InputLogEvent{}
+	logger := logging.Logger()
+	errs := []error{}
 	nEvents := 0
+
 	for _, evt := range events {
 		nEvents++
 		inputLogEvents = append(inputLogEvents, &cloudwatchlogs.InputLogEvent{
@@ -181,15 +206,22 @@ func (sink *Sink) Drain(events []types.Event) []error {
 			Timestamp: aws.Int64(timeutil.UnixMillis()),
 		})
 	}
+
 	input := cloudwatchlogs.PutLogEventsInput{
 		LogEvents:     inputLogEvents,
 		LogGroupName:  aws.String(sink.LogGroupName),
 		LogStreamName: aws.String(sink.LogStreamName),
 	}
 
+	logger.Debug("cloudwatch.Drain: draining",
+		zap.String("logGroupName", sink.LogGroupName),
+		zap.String("logStreamName", sink.LogStreamName),
+		zap.Int("nEvents", nEvents))
+
 	_, err := sink.cloudwatchlogs.PutLogEvents(&input)
-	errs := []error{}
+
 	if err != nil {
+		logger.Debug("cloudwatch.Drain: error when putting events", zap.Error(err))
 		for i := 0; i < nEvents; i++ {
 			errs = append(errs, err)
 		}

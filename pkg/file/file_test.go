@@ -43,7 +43,7 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		p, err := pipe.Stage(source, buf)
+		p, err := pipe.NewStage(source, buf)
 		Expect(err).To(BeNil())
 		p.Flow()
 		Expect(buf.Events).To(Equal(refEvents))
@@ -68,7 +68,7 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		p, err := pipe.Stage(source, buf)
+		p, err := pipe.NewStage(source, buf)
 		Expect(err).To(BeNil())
 		p.Flow()
 		Expect(buf.Events).To(Equal(refEvents))
@@ -88,7 +88,7 @@ var _ = Describe("File", func() {
 		Expect(err).To(BeNil())
 
 		//Runs until file end
-		p, err := pipe.Stage(source, buf)
+		p, err := pipe.NewStage(source, buf)
 		Expect(err).To(BeNil())
 		p.Flow()
 

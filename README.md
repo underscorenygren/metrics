@@ -101,6 +101,16 @@ type `make` to see what build commands are available.
 
 `make install-deps` and `make install-test` will install project prerequisites, such as localstack.
 
+After installing deps, run
+
+`make test`
+
+and make sure they pass.
+
+By default, localstack dependent tests will be skipped if localstack isn't running.
+
+To test aws integrations, run `make localstack`, to start localstack if you don't run it already.
+
 ### Conventions
 
 All Sources, Stages and Sinks are in the [./pkg](./pkg) directory,
@@ -114,6 +124,8 @@ For example, the `http` source, which receives events as a webserver, is
 declared in [pkg/http/http.go](./pkg/http/http.go), with tests
 at [pkg/http/http_test.go](./pkg/http/http_test.go) and
 an example at [examples/http/main.go](./examples/http/main.go).
+
+Executable binaries are in the [./cmd](./cmd) directory.
 
 ### Logging
 

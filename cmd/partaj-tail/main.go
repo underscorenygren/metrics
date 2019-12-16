@@ -198,7 +198,7 @@ func main() {
 	var debug bool
 	var versionFlag bool
 
-	flag.StringVar(&logGroupName, "name", "", "the  name of the log group to tail")
+	flag.StringVar(&logGroupName, "name", "", "(required) the  name of the log group to tail")
 	flag.BoolVar(&debug, "debug", false, "sets logging to debug level")
 	flag.BoolVar(&versionFlag, "version", false, "prints version and exits")
 

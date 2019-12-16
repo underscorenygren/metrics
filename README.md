@@ -23,6 +23,19 @@ _Partaj_ is Swedish slang for a party, and since parties make for great events, 
 
 `partaj` is written as a go 1.12 module.
 
+### Installing binaries from source
+
+If `go get` doesn't work for you to get the bineries, you can build them from source with:
+
+`make install`
+
+This will but binaries in `$GOPATH/bin`.
+
+## Binaries
+
+- `partaj-tail`
+  - A cloudwatch log tailer. Use `-h` for usage
+
 ## Example Usage
 
 Stands up a server and sends body of requests to it to AWS Firehose.
@@ -86,7 +99,7 @@ type `make open-docs` to navigate to the package page (unix-like only).
 
 type `make` to see what build commands are available.
 
-`make install` will install project prerequisites, such as localstack.
+`make install-deps` and `make install-test` will install project prerequisites, such as localstack.
 
 ### Conventions
 

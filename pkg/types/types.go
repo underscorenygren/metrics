@@ -3,6 +3,8 @@ Package types contains generic types and interfaces for partaj.
 */
 package types
 
+import "bytes"
+
 /*
 Event represents a single event in the system.
 
@@ -65,9 +67,20 @@ func (evt *Event) Bytes() []byte {
 	return evt.bytes
 }
 
+//String returns bytes as string
+func (evt *Event) String() string {
+	return string(evt.Bytes())
+}
+
 //NewBytes creates a copy of the event with the new bytes.
 func (evt *Event) NewBytes(bytes []byte) *Event {
 	cpy := Event(*evt)
 	cpy.bytes = bytes
 	return &cpy
+}
+
+//IsEqual equal iff event bytes are equal
+func (evt *Event) IsEqual(other *Event) bool {
+	//do pointer check in case they are the same object
+	return evt == other || bytes.Compare(evt.Bytes(), other.Bytes()) == 0
 }

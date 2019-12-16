@@ -3,11 +3,13 @@ package logging
 import (
 	"github.com/fgrosse/zaptest"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io"
 	"log"
 )
 
 var zapper *zap.Logger
+var atom zap.AtomicLevel = zap.NewAtomicLevel()
 
 //Logger returns the globally configured logger
 func Logger() *zap.Logger {
@@ -19,7 +21,10 @@ func Logger() *zap.Logger {
 //to init.
 func init() {
 	var err error
-	zapper, err = zap.NewProduction()
+	config := zap.NewProductionConfig()
+	config.Level = atom
+	atom.SetLevel(zap.InfoLevel)
+	zapper, err = config.Build()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,4 +35,9 @@ func init() {
 func ConfigureDevelopment(w io.Writer) *zap.Logger {
 	zapper = zaptest.LoggerWriter(w)
 	return zapper
+}
+
+//SetLevel sets level on global logger
+func SetLevel(l zapcore.Level) {
+	atom.SetLevel(l)
 }

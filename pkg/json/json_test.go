@@ -71,7 +71,7 @@ var _ = Describe("Json", func() {
 		t, err := transformer.NewSource(testSource, fn)
 
 		//Make pipe
-		p, err = pipe.Stage(t, sink)
+		p, err = pipe.NewStage(t, sink)
 		Expect(err).To(BeNil())
 
 		//fill pipe and close source
@@ -123,7 +123,7 @@ var _ = Describe("Json", func() {
 
 		//Make pipe
 		sink = buffer.NewSink()
-		p, err = pipe.Stage(t, sink)
+		p, err = pipe.NewStage(t, sink)
 		Expect(err).To(BeNil())
 
 		//fill pipe and close source

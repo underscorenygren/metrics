@@ -1,5 +1,7 @@
 .PHONY: build help test ls docs
 RUNNER_DIR := examples
+BINARY_DIR := cmd
+INSTALL_PATH := $(GOPATH)/bin
 
 ## Makefile self-documentation
 ##############################
@@ -48,7 +50,11 @@ run-%:  ## runs a target locally
 	go run $(RUNNER_DIR)/$*/main.go
 
 build-%:  ## builds a target locally
-	go build -o build/$* $(RUNNER_DIR)/$*/main.go
+	go build  -ldflags "-X main.version=$(VERSION)" -o build/$* $(RUNNER_DIR)/$*/main.go
+
+# we do this "by hand", because I can't figure out how to properly do it using golang, using `install` or whatnot
+install-%:  ## installs a target binary
+	go build -ldflags "-X main.version=$(VERSION)" -o $(INSTALL_PATH)/$* $(BINARY_DIR)/$*/main.go
 
 clean-%:  ## cleans up build targets
 	rm -f build/$*
@@ -56,28 +62,38 @@ clean-%:  ## cleans up build targets
 # derive targets from folders in runner directory
 # suppress errors since one will be empty in docker and vice versa
 LS_CMD = ls $(RUNNER_DIR)/ 2> /dev/null
+BIN_LS_CMD = ls $(BINARY_DIR)/ 2> /dev/null
 TARGET_NAMES := $(shell $(LS_CMD))
+BIN_TARGET_NAMES := $(shell $(BIN_LS_CMD))
 BUILD_TARGETS := $(addprefix build-,$(TARGET_NAMES))
 CLEAN_TARGETS := $(addprefix clean-,$(TARGET_NAMES))
+INSTALL_TARGETS := $(addprefix install-,$(BIN_TARGET_NAMES))
+VERSION := $(shell cat Version)
 
 build: $(BUILD_TARGETS) ## builds all targets
 
 clean: $(CLEAN_TARGETS) ## cleans all targets
 
-install: ## install prereqs
-	pip install localstack
+install: $(INSTALL_TARGETS) ## installs all binaries
+
+install-deps: ## install dependencies
 	go get
+
+install-test: install-deps ## install prereqs for testing
+	pip install localstack
 
 ## Docker
 
 docker-install:  ## installs dependencies inside golang docker container
 	go mod download
 
+localstack:
+	localstack start
+
 # Utilities
 
 ls:  ## lists available build/run targets
 	@$(LS_CMD) | cat
-
 
 test:  ## runs specs
 	@ginkgo -r ./...

@@ -73,7 +73,11 @@ func (manual *Source) DrawOne() (*types.Event, error) {
 
 	logger.Debug("DrawOne: blocking on channel")
 	e, more := <-manual.c
-	logger.Debug("DrawOne: unblocked from channel")
+	if e != nil {
+		logger.Debug("DrawOne: unblocked from channel", zap.ByteString("event", e.Bytes()))
+	} else {
+		logger.Debug("DrawOne: unblocked from channel")
+	}
 
 	var err error
 	if !more {

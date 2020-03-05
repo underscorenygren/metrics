@@ -67,8 +67,6 @@ func (pipe *Pipe) Flow() error {
 			}
 		}
 	}
-
-	return nil
 }
 
 //Source gets the source for the pipe.

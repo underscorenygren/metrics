@@ -98,6 +98,12 @@ ls:  ## lists available build/run targets
 test:  ## runs specs
 	@ginkgo -r ./...
 
+vet:
+	@go vet ./...
+
+test-one:  ## runs only certain specs, requires TEST=
+	@ginkgo ./pkg/${TEST}
+
 docs:  ## generates documentation
 	docker build -f docs.Dockerfile -t partaj-docs .
 	docker run --rm -it -p 6060:6060 partaj-docs

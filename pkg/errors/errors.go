@@ -21,3 +21,6 @@ var ErrPutFailure = fmt.Errorf("ErrPutFailure")
 
 //ErrCloudwatchEnd is returned when no more entries are available from cloudwatch source
 var ErrCloudwatchEnd = fmt.Errorf("ErrCloudwatchEnd")
+
+//ErrSQLEnd is returned when no more entries are available from cloudwatch source
+var ErrSQLEnd = fmt.Errorf("ErrSQLEnd")

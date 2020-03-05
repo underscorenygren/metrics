@@ -14,7 +14,7 @@ import (
 /*
 ParalellFailFirst executes supplied stages in paralell goroutines.
 
-Returns a read-only for any errors returned by failed Flows.
+Returns a read-only channel for any errors returned by failed Flows.
 */
 func ParalellFailFirst(stages []types.Stage, logger *zap.Logger) <-chan error {
 	errChan := make(chan error)

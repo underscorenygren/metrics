@@ -4,9 +4,9 @@ Package pipe provides a simple stage that connects a source with a sink.
 package pipe
 
 import (
-	"fmt"
 	"github.com/underscorenygren/partaj/internal/logging"
 	"github.com/underscorenygren/partaj/internal/stage"
+	"github.com/underscorenygren/partaj/pkg/errors"
 	"github.com/underscorenygren/partaj/pkg/types"
 	"go.uber.org/zap"
 )
@@ -20,10 +20,10 @@ type Pipe struct {
 //NewStage creates a Pipe that connects a source with a sink.
 func NewStage(source types.Source, sink types.Sink) (*Pipe, error) {
 	if source == nil {
-		return nil, fmt.Errorf("source cannot be nil")
+		return nil, errors.ErrNilSource
 	}
 	if sink == nil {
-		return nil, fmt.Errorf("sink cannot be nil")
+		return nil, errors.ErrNilSink
 	}
 
 	return &Pipe{

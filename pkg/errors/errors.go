@@ -24,3 +24,12 @@ var ErrCloudwatchEnd = fmt.Errorf("ErrCloudwatchEnd")
 
 //ErrSQLEnd is returned when no more entries are available from cloudwatch source
 var ErrSQLEnd = fmt.Errorf("ErrSQLEnd")
+
+//ErrNilSource error when passing nil source to constructors requiring them
+var ErrNilSource = fmt.Errorf("source cannot be nil")
+
+//ErrNilSink error when passing nil sink to constructors requiring them
+var ErrNilSink = fmt.Errorf("sink cannot be nil")
+
+//ErrNilFn error when missing fn argument to constructors
+var ErrNilFn = fmt.Errorf("function cannot be nil")

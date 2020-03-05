@@ -82,5 +82,7 @@ func (evt *Event) NewBytes(bytes []byte) *Event {
 //IsEqual equal iff event bytes are equal
 func (evt *Event) IsEqual(other *Event) bool {
 	//do pointer check in case they are the same object
-	return evt == other || bytes.Compare(evt.Bytes(), other.Bytes()) == 0
+	return evt == other ||
+		(other != nil &&
+			bytes.Compare(evt.Bytes(), other.Bytes()) == 0)
 }
